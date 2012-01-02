@@ -5,6 +5,7 @@ import os
 import re
 import subprocess
 import sys
+import time
 
 from pprint import pprint
 
@@ -28,8 +29,9 @@ def FindTitleCount(scan):
     m = TITLE_COUNT_REGEX.match(line)
     if m:
       return int(m.group(1))
-  raise "Can't find TITLE_COUNT_REGEX in scan"
-
+  for line in scan:
+    print line
+  raise AssertionError("Can't find TITLE_COUNT_REGEX in scan")
 
 
 STRUCTURED_LINE_RE = re.compile(r'( *)\+ (([a-z0-9 ]+):)?(.*)')
@@ -114,9 +116,9 @@ def ParseNode(scan, pos, indent):
 
 TITLE_KEY_RE = re.compile(r'title (\d+)')
 
-def RipTitle(title_number, title, input, output):
+def RipTitle(title_number, title, input, output, title_count):
   print '=' * 78
-  print 'Title', title_number
+  print 'Title %s / %s' % (title_number, title_count)
   print '-' * 78
   print 'Scan:'
   pprint(title)
@@ -167,6 +169,10 @@ def ScanTitle(i):
 
 
 def ScanTitles():
+  """
+  Returns a tuple (title_count, titles) where title_count is the number
+  of titles, and titles is an iterable of parsed titles.
+  """
   scan = ScanTitle(1)
   title_count = FindTitleCount(scan)
   def GenTitleScans(title_count, scan):
@@ -184,9 +190,23 @@ def ScanTitles():
   return (title_count, GenTitleScans(title_count, scan))
 
 
+TOTAL_EJECT_SECONDS = 5
+EJECT_ATTEMPTS_PER_SECOND = 10
+
+def Eject(device):
+  for i in range(TOTAL_EJECT_SECONDS * EJECT_ATTEMPTS_PER_SECOND):
+    if not subprocess.call(['eject', device]):
+      return
+    time.sleep(1.0 / EJECT_ATTEMPTS_PER_SECOND)
+
+def Reveal(fnam):
+  subprocess.call(['open', '--reveal', fnam])
+
 if __name__ == '__main__':
   _, input, output = sys.argv
 
+  assert os.path.exists(input), '%r not found' % input
+  assert os.path.isdir(input), '%r is not a directory' % input
   print 'Reading from %r' % input
   print 'Writing to %r' % output
   print
@@ -198,9 +218,12 @@ if __name__ == '__main__':
   else:
     if title_count == 1:
       (key, title), = titles
-      RipTitle(ParseTitleKey(key), title, input, os.path.join('%s.mp4' % output))
+      output = '%s.mp4' % output
+      RipTitle(ParseTitleKey(key), title, input, output, title_count)
     else:
       mkdir_p(output)
       for key, title in titles:
-        RipTitle(ParseTitleKey(key), title, input, os.path.join(output, '%s.mp4' % key.capitalize()))
+        RipTitle(ParseTitleKey(key), title, input, os.path.join(output, '%s.mp4' % key.capitalize()), title_count)
     print '=' * 78
+    Reveal(output)
+    Eject(input)
