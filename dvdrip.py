@@ -1,5 +1,6 @@
 #!/opt/local/bin/python2.7
 
+import argparse
 import errno
 import os
 import re
@@ -116,7 +117,7 @@ def ParseNode(scan, pos, indent):
 
 TITLE_KEY_RE = re.compile(r'title (\d+)')
 
-def RipTitle(title_number, title, input, output, title_count):
+def RipTitle(title_number, title, input, output, title_count, dry_run):
   print '=' * 78
   print 'Title %s / %s' % (title_number, title_count)
   print '-' * 78
@@ -147,7 +148,8 @@ def RipTitle(title_number, title, input, output, title_count):
   ]
   print ' '.join(('\n  ' + a) if a.startswith('-') else a for a in args)
   print '-' * 78
-  subprocess.call(args)
+  if not dry_run:
+    subprocess.call(args)
 
 def ParseTitleKey(key):
   return TITLE_KEY_RE.match(key).group(1)
@@ -202,8 +204,31 @@ def Eject(device):
 def Reveal(fnam):
   subprocess.call(['open', '--reveal', fnam])
 
-if __name__ == '__main__':
-  _, input, output = sys.argv
+def ParseDuration(s):
+  result = 0
+  for field in s.strip().split(':'):
+    result *= 60
+    result += int(field)
+  return result
+
+def main():
+  global input, output
+  parser = argparse.ArgumentParser(description='Rip a DVD.')
+  parser.add_argument('-n', '--dry-run',
+      action='store_true',
+      help="Don't actually write anything.")
+  parser.add_argument('--main-feature',
+      action='store_true',
+      help="Rip only the main feature title.")
+  parser.add_argument('input',
+      help="Volume to rip (must be a directory).")
+  parser.add_argument('output',
+      help="""Output location. Extension is added if only one title
+      being ripped, otherwise, a directory will be created to contain
+      ripped titles.""")
+  args = parser.parse_args()
+  input = args.input
+  output = args.output
 
   assert os.path.exists(input), '%r not found' % input
   assert os.path.isdir(input), '%r is not a directory' % input
@@ -212,6 +237,13 @@ if __name__ == '__main__':
   print
 
   title_count, titles = ScanTitles()
+  if args.main_feature and title_count > 1:
+    print 'Attempting to determine main feature of %d titles...' % title_count
+    main_feature = max(titles,
+        key=lambda key_title: ParseDuration(key_title[1]['duration']))
+    title_count, titles = 1, [main_feature]
+    print 'Selected %r as main feature.' % titles[0][0]
+    print
 
   if title_count < 1:
     print "No titles to rip!"
@@ -219,11 +251,19 @@ if __name__ == '__main__':
     if title_count == 1:
       (key, title), = titles
       output = '%s.mp4' % output
-      RipTitle(ParseTitleKey(key), title, input, output, title_count)
+      RipTitle(ParseTitleKey(key), title, input, output, title_count,
+          args.dry_run)
     else:
-      mkdir_p(output)
+      if not args.dry_run:
+        mkdir_p(output)
       for key, title in titles:
-        RipTitle(ParseTitleKey(key), title, input, os.path.join(output, '%s.mp4' % key.capitalize()), title_count)
+        RipTitle(ParseTitleKey(key), title, input,
+            os.path.join(output, '%s.mp4' % key.capitalize()),
+            title_count, args.dry_run)
     print '=' * 78
-    Reveal(output)
-    Eject(input)
+    if not args.dry_run:
+      Reveal(output)
+      Eject(input)
+
+if __name__ == '__main__':
+  main()
