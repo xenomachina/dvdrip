@@ -10,6 +10,31 @@ import time
 
 from pprint import pprint
 
+"""
+This script exists because I wanted a simple way to back up DVDs with
+reasonably good compression and quality settings, and in a format I
+could play on a PS3.
+
+I also wanted it to preserve as much as possible: chapter markers,
+subtitles, and (most of all) *all* of the audio tracks. My son has a
+number of bilingual DVDs, and I wanted to back these up so we don't have
+to handle the physical disks, but he can still watch each one in either
+language. For some reason HandbrakeCLI doesn't have a simple “encode all
+audio tracks” option.
+
+This script also tries to be smart about the output name. You just tell
+it the pathname prefix, eg: "/tmp/Elmo's Potty Time", and it'll decide
+whether to produce a single file, "/tmp/Elmo's Potty Time.mp4", or a
+directory "/tmp/Elmo's Potty Time/" which will contain separate files
+for each title, depending on how many titles are being ripped.
+
+Portability: This script has only been tested on Mac OS X (10.6) with
+MacPorts, HandbrakeCLI and VLC installed. Porting to Linux would
+probably be fairly easy, but some of the frills (ejecting, revealing the
+file, mapping device names to volume names) probably need to be made
+more portable. There are also some hard-coded paths.
+"""
+
 def check_err(*popenargs, **kwargs):
   process = subprocess.Popen(stderr=subprocess.PIPE, *popenargs, **kwargs)
   _, stderr = process.communicate()
@@ -21,6 +46,7 @@ def check_err(*popenargs, **kwargs):
     raise subprocess.CalledProcessError(retcode, cmd, output=stderr)
   return stderr
 
+# TODO: why is this path hardcoded?
 HANDBRAKE = '/usr/local/bin/HandbrakeCLI'
 
 TITLE_COUNT_REGEX = re.compile(r'^Scanning title 1 of (\d+)\.\.\.$')
@@ -68,10 +94,10 @@ def MassageTrackData(node, key):
 def ParseTitleScan(scan):
   pos, result = ParseTitleScanHelper(scan, pos=0, indent=0)
 
-  # HandbrakeCLI inexplicably uses a comma instead of a colon to separat
-  # the track identifier from the track data in the "audio tracks" and
-  # "subtitle tracks" nodes, so we "massage" these parsed nodes to get a
-  # consistent parsed reperesentation.
+  # HandbrakeCLI inexplicably uses a comma instead of a colon to
+  # separate the track identifier from the track data in the "audio
+  # tracks" and "subtitle tracks" nodes, so we "massage" these parsed
+  # nodes to get a consistent parsed reperesentation.
   for value in result.values():
     MassageTrackData(value, 'audio tracks')
     MassageTrackData(value, 'subtitle tracks')
@@ -169,7 +195,6 @@ def ScanTitle(i):
     '-i',
     input]).split('\n'))
 
-
 def ScanTitles():
   """
   Returns a tuple (title_count, titles) where title_count is the number
@@ -196,6 +221,8 @@ TOTAL_EJECT_SECONDS = 5
 EJECT_ATTEMPTS_PER_SECOND = 10
 
 def Eject(device):
+  # TODO: this should really be a while loop that terminates once a
+  # deadline is met.
   for i in range(TOTAL_EJECT_SECONDS * EJECT_ATTEMPTS_PER_SECOND):
     if not subprocess.call(['eject', device]):
       return
@@ -211,12 +238,25 @@ def ParseDuration(s):
     result += int(field)
   return result
 
+def FindMountPoint(dev):
+  regex = re.compile(r'^' + re.escape(dev) + r'\b')
+  for line in subprocess.check_output(['df', '-P']).split('\n'):
+    m = regex.match(line)
+    if m:
+      line = line.split()
+      if len(line) > 1:
+        return line[-1]
+  return None
+
 def main():
   global input, output
   parser = argparse.ArgumentParser(description='Rip a DVD.')
   parser.add_argument('-n', '--dry-run',
       action='store_true',
       help="Don't actually write anything.")
+  parser.add_argument('--input-device',
+      action='store_true',
+      help="Input is specified as a device, not a mountpoint.")
   parser.add_argument('--main-feature',
       action='store_true',
       help="Rip only the main feature title.")
@@ -229,6 +269,9 @@ def main():
   args = parser.parse_args()
   input = args.input
   output = args.output
+
+  if args.input_device:
+    input = FindMountPoint(input)
 
   assert os.path.exists(input), '%r not found' % input
   assert os.path.isdir(input), '%r is not a directory' % input
