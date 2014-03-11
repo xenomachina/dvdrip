@@ -33,6 +33,10 @@ This script has been tested on both Linux and Mac OS X with HandbrakeCLI
 and VLC installed (and also MacPorts in the case of Mac OS X).
 """
 
+class UserError(Exception):
+  def __init__(self, message):
+    self.message = message
+
 CHAR_ENCODING = 'UTF-8'
 
 def check_err(*popenargs, **kwargs):
@@ -155,7 +159,7 @@ TITLE_KEY_RE = re.compile(r'title (\d+)')
 def RipTitle(title_number, title, input, output, title_count, dry_run,
     verbose):
   print('=' * 78)
-  print('Title %s / %s' % (title_number, title_count))
+  print('Title %s / %s => %r' % (title_number, title_count, output))
   print('-' * 78)
   if verbose:
     print('Scan:')
@@ -198,13 +202,6 @@ def first(iterable):
 
 def ParseTitleKey(key):
   return TITLE_KEY_RE.match(key).group(1)
-
-def mkdir_p(path):
-  try:
-    os.makedirs(path)
-  except OSError as exc:
-    if exc.errno != errno.EEXIST:
-      raise
 
 def ScanTitle(i):
   return tuple(check_err([
@@ -264,7 +261,7 @@ def FindMountPoint(dev):
       line = line.split()
       if len(line) > 1:
         return line[-1]
-  return None
+  raise UserError('%r not mounted.' % dev)
 
 def main():
   global input, output
@@ -313,21 +310,41 @@ def main():
   if title_count < 1:
     print("No titles to rip!")
   else:
-    if title_count == 1:
-      (key, title), = titles
-      output = '%s.mp4' % output
-      RipTitle(ParseTitleKey(key), title, input, output, title_count,
-          args.dry_run)
-    else:
+    if (title_count > 1):
+      def ComputeFileName(key):
+        return os.path.join(output, '%s.mp4' % key.capitalize())
       if not args.dry_run:
-        mkdir_p(output)
-      for key, title in titles:
-        RipTitle(ParseTitleKey(key), title, input,
-            os.path.join(output, '%s.mp4' % key.capitalize()),
-            title_count, args.dry_run, verbose=args.verbose)
+        os.makedirs(output)
+    else:
+      def ComputeFileName(key):
+        return '%s.mp4' % output
+
+    # Reify titles, as we're planning in iterating over it twice.
+    titles = list(titles)
+
+    # Don't stomp on existing files
+    for key, title in titles:
+      fnam = ComputeFileName(key)
+      if os.path.exists(fnam):
+        raise UserError('%r already exists!' % fnam)
+
+    for key, title in titles:
+      RipTitle(ParseTitleKey(key), title, input, ComputeFileName(key),
+          title_count, args.dry_run, verbose=args.verbose)
+
     print('=' * 78)
     if not args.dry_run:
       Eject(input)
 
 if __name__ == '__main__':
-  main()
+  error = None
+  try:
+    main()
+  except FileExistsError as exc:
+    error = '%s: %r' % (exc.strerror, exc.filename)
+  except UserError as exc:
+    error = exc.message
+
+  if error is not None:
+    print('ERROR: ' + error, file=sys.stderr)
+    sys.exit(1)
