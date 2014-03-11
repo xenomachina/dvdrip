@@ -188,8 +188,10 @@ def RipTitle(title_number, title, input, output, title_count, dry_run,
     print(' '.join(('\n  ' + a) if a.startswith('-') else a for a in args))
     print('-' * 78)
   if not dry_run:
-    # TODO: consume output unless verbose
-    subprocess.call(args)
+    if verbose:
+      subprocess.call(args)
+    else:
+      check_err(args)
 
 def first(iterable):
   return next(iter(iterable))
