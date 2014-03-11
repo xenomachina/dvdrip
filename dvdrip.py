@@ -17,7 +17,7 @@ reasonably good compression and quality settings, and in a format I
 could play on a PS3.
 
 I also wanted it to preserve as much as possible: chapter markers,
-subtitles, and (most of all) *all* of the audio tracks. My son has a
+subtitles, and (most of all) *all* of the audio tracks. My kids have a
 number of bilingual DVDs, and I wanted to back these up so we don't have
 to handle the physical disks, but he can still watch each one in either
 language. For some reason HandbrakeCLI doesn't have a simple “encode all
@@ -29,11 +29,8 @@ whether to produce a single file, "/tmp/Elmo's Potty Time.mp4", or a
 directory "/tmp/Elmo's Potty Time/" which will contain separate files
 for each title, depending on how many titles are being ripped.
 
-Portability: This script has only been tested on Mac OS X (10.6) with
-MacPorts, HandbrakeCLI and VLC installed. Porting to Linux would
-probably be fairly easy, but some of the frills (ejecting, revealing the
-file, mapping device names to volume names) probably need to be made
-more portable. There are also some hard-coded paths.
+This script has been tested on both Linux and Mac OS X with HandbrakeCLI
+and VLC installed (and also MacPorts in the case of Mac OS X).
 """
 
 CHAR_ENCODING = 'UTF-8'
