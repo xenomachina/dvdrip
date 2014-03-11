@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python3
 # coding=utf-8
 
 import argparse
@@ -36,6 +36,8 @@ file, mapping device names to volume names) probably need to be made
 more portable. There are also some hard-coded paths.
 """
 
+CHAR_ENCODING = 'UTF-8'
+
 def check_err(*popenargs, **kwargs):
   process = subprocess.Popen(stderr=subprocess.PIPE, *popenargs, **kwargs)
   _, stderr = process.communicate()
@@ -45,7 +47,10 @@ def check_err(*popenargs, **kwargs):
     if cmd is None:
       cmd = popenargs[0]
     raise subprocess.CalledProcessError(retcode, cmd, output=stderr)
-  return stderr
+  return stderr.decode(CHAR_ENCODING)
+
+def check_output(*args, **kwargs):
+  return subprocess.check_output(*args, **kwargs).decode(CHAR_ENCODING)
 
 # TODO: why is this path hardcoded?
 HANDBRAKE = 'HandBrakeCLI'
@@ -63,7 +68,7 @@ def FindTitleCount(scan):
     if m:
       return int(m.group(1))
   for line in scan:
-    print line
+    print(line)
   raise AssertionError("Can't find TITLE_COUNT_REGEX in scan")
 
 
@@ -150,12 +155,12 @@ def ParseNode(scan, pos, indent):
 TITLE_KEY_RE = re.compile(r'title (\d+)')
 
 def RipTitle(title_number, title, input, output, title_count, dry_run):
-  print '=' * 78
-  print 'Title %s / %s' % (title_number, title_count)
-  print '-' * 78
-  print 'Scan:'
+  print('=' * 78)
+  print('Title %s / %s' % (title_number, title_count))
+  print('-' * 78)
+  print('Scan:')
   pprint(title)
-  print '-' * 78
+  print('-' * 78)
   audio_tracks = title['audio tracks'].keys()
   audio_encoders = ['copy'] * len(audio_tracks)
   subtitles = title['subtitle tracks'].keys()
@@ -178,10 +183,13 @@ def RipTitle(title_number, title, input, output, title_count, dry_run):
     '--input', input,
     '--output', output,
   ]
-  print ' '.join(('\n  ' + a) if a.startswith('-') else a for a in args)
-  print '-' * 78
+  print(' '.join(('\n  ' + a) if a.startswith('-') else a for a in args))
+  print('-' * 78)
   if not dry_run:
     subprocess.call(args)
+
+def first(iterable):
+  return next(iter(iterable))
 
 def ParseTitleKey(key):
   return TITLE_KEY_RE.match(key).group(1)
@@ -211,15 +219,17 @@ def ScanTitles():
   def GenTitleScans(title_count, scan):
     title = ParseTitleScan(ExtractTitleScan(scan))
     del scan
+
+    #TODO: factor out 'only' function?
     assert len(title) == 1
     assert 'title 1' in title
-    yield title.items()[0]
+    yield first(title.items())
 
     for i in range(2, title_count + 1):
       title = ParseTitleScan(ExtractTitleScan(ScanTitle(i)))
       assert len(title) == 1
       assert ('title %d' % i) in title
-      yield title.items()[0]
+      yield first(title.items())
   return (title_count, GenTitleScans(title_count, scan))
 
 
@@ -243,7 +253,7 @@ def ParseDuration(s):
 
 def FindMountPoint(dev):
   regex = re.compile(r'^' + re.escape(os.path.realpath(dev)) + r'\b')
-  for line in subprocess.check_output(['df', '-P']).split('\n'):
+  for line in check_output(['df', '-P']).split('\n'):
     m = regex.match(line)
     if m:
       line = line.split()
@@ -279,21 +289,21 @@ def main():
   # TODO: don't abuse assert like this
   assert input and os.path.exists(input), '%s not found' % repr(input)
   assert os.path.isdir(input), '%r is not a directory' % input
-  print 'Reading from %r' % input
-  print 'Writing to %r' % output
-  print
+  print('Reading from %r' % input)
+  print('Writing to %r' % output)
+  print()
 
   title_count, titles = ScanTitles()
   if args.main_feature and title_count > 1:
-    print 'Attempting to determine main feature of %d titles...' % title_count
+    print('Attempting to determine main feature of %d titles...' % title_count)
     main_feature = max(titles,
         key=lambda key_title: ParseDuration(key_title[1]['duration']))
     title_count, titles = 1, [main_feature]
-    print 'Selected %r as main feature.' % titles[0][0]
-    print
+    print('Selected %r as main feature.' % titles[0][0])
+    print()
 
   if title_count < 1:
-    print "No titles to rip!"
+    print("No titles to rip!")
   else:
     if title_count == 1:
       (key, title), = titles
@@ -307,7 +317,7 @@ def main():
         RipTitle(ParseTitleKey(key), title, input,
             os.path.join(output, '%s.mp4' % key.capitalize()),
             title_count, args.dry_run)
-    print '=' * 78
+    print('=' * 78)
     if not args.dry_run:
       Eject(input)
 
