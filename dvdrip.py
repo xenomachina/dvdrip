@@ -57,15 +57,16 @@ TITLE_COUNT_REGEXES = [
     re.compile(r'^\[\d\d:\d\d:\d\d] scan: DVD has (\d+) title\(s\)$'),
 ]
 
-def FindTitleCount(scan):
+def FindTitleCount(scan, verbose):
   for line in scan:
     for regex in TITLE_COUNT_REGEXES:
       m = regex.match(line)
       if m: break
     if m:
       return int(m.group(1))
-  for line in scan:
-    print(line)
+  if verbose:
+    for line in scan:
+      print(line)
   raise AssertionError("Can't find TITLE_COUNT_REGEX in scan")
 
 
@@ -151,13 +152,16 @@ def ParseNode(scan, pos, indent):
 
 TITLE_KEY_RE = re.compile(r'title (\d+)')
 
-def RipTitle(title_number, title, input, output, title_count, dry_run):
+def RipTitle(title_number, title, input, output, title_count, dry_run,
+    verbose):
   print('=' * 78)
   print('Title %s / %s' % (title_number, title_count))
   print('-' * 78)
-  print('Scan:')
-  pprint(title)
-  print('-' * 78)
+  if verbose:
+    print('Scan:')
+    pprint(title)
+    print('-' * 78)
+
   audio_tracks = title['audio tracks'].keys()
   audio_encoders = ['copy'] * len(audio_tracks)
   subtitles = title['subtitle tracks'].keys()
@@ -180,10 +184,14 @@ def RipTitle(title_number, title, input, output, title_count, dry_run):
     '--input', input,
     '--output', output,
   ]
-  print(' '.join(('\n  ' + a) if a.startswith('-') else a for a in args))
-  print('-' * 78)
+  if verbose:
+    print(' '.join(('\n  ' + a) if a.startswith('-') else a for a in args))
+    print('-' * 78)
   if not dry_run:
-    subprocess.call(args)
+    if verbose:
+      subprocess.call(args)
+    else:
+      check_err(args)
 
 def first(iterable):
   return next(iter(iterable))
@@ -206,13 +214,13 @@ def ScanTitle(i):
     '-i',
     input]).split('\n'))
 
-def ScanTitles():
+def ScanTitles(verbose):
   """
   Returns a tuple (title_count, titles) where title_count is the number
   of titles, and titles is an iterable of parsed titles.
   """
   scan = ScanTitle(1)
-  title_count = FindTitleCount(scan)
+  title_count = FindTitleCount(scan, verbose)
   def GenTitleScans(title_count, scan):
     title = ParseTitleScan(ExtractTitleScan(scan))
     del scan
@@ -261,6 +269,9 @@ def FindMountPoint(dev):
 def main():
   global input, output
   parser = argparse.ArgumentParser(description='Rip a DVD.')
+  parser.add_argument('-v', '--verbose',
+      action='store_true',
+      help="increase verbosity")
   parser.add_argument('-n', '--dry-run',
       action='store_true',
       help="Don't actually write anything.")
@@ -290,7 +301,7 @@ def main():
   print('Writing to %r' % output)
   print()
 
-  title_count, titles = ScanTitles()
+  title_count, titles = ScanTitles(args.verbose)
   if args.main_feature and title_count > 1:
     print('Attempting to determine main feature of %d titles...' % title_count)
     main_feature = max(titles,
@@ -313,7 +324,7 @@ def main():
       for key, title in titles:
         RipTitle(ParseTitleKey(key), title, input,
             os.path.join(output, '%s.mp4' % key.capitalize()),
-            title_count, args.dry_run)
+            title_count, args.dry_run, verbose=args.verbose)
     print('=' * 78)
     if not args.dry_run:
       Eject(input)
