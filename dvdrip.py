@@ -1,4 +1,5 @@
 #!/usr/bin/env python2.7
+# coding=utf-8
 
 import argparse
 import errno
@@ -47,13 +48,18 @@ def check_err(*popenargs, **kwargs):
   return stderr
 
 # TODO: why is this path hardcoded?
-HANDBRAKE = '/usr/local/bin/HandbrakeCLI'
+HANDBRAKE = 'HandBrakeCLI'
 
-TITLE_COUNT_REGEX = re.compile(r'^Scanning title 1 of (\d+)\.\.\.$')
+TITLE_COUNT_REGEXES = [
+    re.compile(r'^Scanning title 1 of (\d+)\.\.\.$'),
+    re.compile(r'^\[\d\d:\d\d:\d\d] scan: DVD has (\d+) title\(s\)$'),
+]
 
 def FindTitleCount(scan):
   for line in scan:
-    m = TITLE_COUNT_REGEX.match(line)
+    for regex in TITLE_COUNT_REGEXES:
+      m = regex.match(line)
+      if m: break
     if m:
       return int(m.group(1))
   for line in scan:
@@ -228,9 +234,6 @@ def Eject(device):
       return
     time.sleep(1.0 / EJECT_ATTEMPTS_PER_SECOND)
 
-def Reveal(fnam):
-  subprocess.call(['open', '--reveal', fnam])
-
 def ParseDuration(s):
   result = 0
   for field in s.strip().split(':'):
@@ -239,7 +242,7 @@ def ParseDuration(s):
   return result
 
 def FindMountPoint(dev):
-  regex = re.compile(r'^' + re.escape(dev) + r'\b')
+  regex = re.compile(r'^' + re.escape(os.path.realpath(dev)) + r'\b')
   for line in subprocess.check_output(['df', '-P']).split('\n'):
     m = regex.match(line)
     if m:
@@ -273,7 +276,8 @@ def main():
   if args.input_device:
     input = FindMountPoint(input)
 
-  assert os.path.exists(input), '%r not found' % input
+  # TODO: don't abuse assert like this
+  assert input and os.path.exists(input), '%s not found' % repr(input)
   assert os.path.isdir(input), '%r is not a directory' % input
   print 'Reading from %r' % input
   print 'Writing to %r' % output
@@ -305,7 +309,6 @@ def main():
             title_count, args.dry_run)
     print '=' * 78
     if not args.dry_run:
-      Reveal(output)
       Eject(input)
 
 if __name__ == '__main__':
