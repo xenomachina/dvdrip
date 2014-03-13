@@ -209,7 +209,7 @@ def ScanTitle(i):
     '--scan',
     '--title', str(i),
     '-i',
-    input]).split('\n'))
+    input], stdout=subprocess.PIPE).split('\n'))
 
 def ScanTitles(verbose):
   """
