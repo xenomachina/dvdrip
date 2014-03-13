@@ -167,7 +167,7 @@ def RipTitle(title_number, title, input, output, title_count, dry_run,
     print('-' * 78)
 
   audio_tracks = title['audio tracks'].keys()
-  audio_encoders = ['copy'] * len(audio_tracks)
+  audio_encoders = ['faac'] * len(audio_tracks)
   subtitles = title['subtitle tracks'].keys()
 
   args = [
