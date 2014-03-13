@@ -174,6 +174,7 @@ def RipTitle(title_number, title, input, output, title_count, dry_run,
     HANDBRAKE,
     '--title', title_number,
     '--preset', "High Profile",
+    '--encoder', 'x264',
     '--audio', ','.join(audio_tracks),
     '--aencoder', ','.join(audio_encoders),
   ]
