@@ -2,9 +2,9 @@
 # coding=utf-8
 
 import argparse
-import errno
 import os
 import re
+import stat
 import subprocess
 import sys
 import time
@@ -272,9 +272,6 @@ def main():
   parser.add_argument('-n', '--dry-run',
       action='store_true',
       help="Don't actually write anything.")
-  parser.add_argument('--input-device',
-      action='store_true',
-      help="Input is specified as a device, not a mountpoint.")
   parser.add_argument('--main-feature',
       action='store_true',
       help="Rip only the main feature title.")
@@ -288,11 +285,11 @@ def main():
   input = args.input
   output = args.output
 
-  if args.input_device:
+
+  if stat.S_ISBLK(os.stat(input).st_mode):
     input = FindMountPoint(input)
 
   # TODO: don't abuse assert like this
-  assert input and os.path.exists(input), '%s not found' % repr(input)
   assert os.path.isdir(input), '%r is not a directory' % input
   print('Reading from %r' % input)
   print('Writing to %r' % output)
