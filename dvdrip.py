@@ -13,24 +13,28 @@ from pprint import pprint
 
 """
 This script exists because I wanted a simple way to back up DVDs with
-reasonably good compression and quality settings, and in a format I
-could play on a PS3.
+reasonably good compression and quality settings, and in a format I could play
+on the various media players I own including PS3, Roku, smart TVs, smartphones
+and tablets. Using mp4 files with h.264 video and aac audio seems to be
+the best fit for these contraints.
 
-I also wanted it to preserve as much as possible: chapter markers,
-subtitles, and (most of all) *all* of the audio tracks. My kids have a
-number of bilingual DVDs, and I wanted to back these up so we don't have
-to handle the physical disks, but he can still watch each one in either
-language. For some reason HandbrakeCLI doesn't have a simple “encode all
-audio tracks” option.
+I also wanted it to preserve as much as possible: chapter markers, subtitles,
+and (most of all) *all* of the audio tracks. My kids have a number of bilingual
+DVDs, and I wanted to back these up so they don't have to handle the physical
+disks, but can still watch their shows in either language. For some reason
+HandBrakeCLI doesn't have a simple “encode all audio tracks” option. To
+get around this, we have to ask HandBrakeCLI to scan the disk and tell
+us what audio tracks exist on each title, so that we can then enumerate
+these when we ask it to rip+encode.
 
-This script also tries to be smart about the output name. You just tell
-it the pathname prefix, eg: "/tmp/Elmo's Potty Time", and it'll decide
-whether to produce a single file, "/tmp/Elmo's Potty Time.mp4", or a
-directory "/tmp/Elmo's Potty Time/" which will contain separate files
-for each title, depending on how many titles are being ripped.
+This script also tries to be smart about the output name. You just tell it the
+pathname prefix, eg: "/tmp/AwesomeVideo", and it'll decide whether to
+produce a single file, "/tmp/AwesomeVideo.mp4", or a directory
+"/tmp/AwesomeVideo/" which will contain separate files for each title,
+depending on whether you're ripping a single title or multiple titles.
 
-This script has been tested on both Linux and Mac OS X with HandbrakeCLI
-and VLC installed (and also MacPorts in the case of Mac OS X).
+This script has been tested on both Linux and Mac OS X with HandBrakeCLI and
+VLC installed (and also MacPorts in the case of Mac OS X).
 """
 
 class UserError(Exception):
@@ -107,7 +111,7 @@ def MassageTrackData(node, key):
 def ParseTitleScan(scan):
   pos, result = ParseTitleScanHelper(scan, pos=0, indent=0)
 
-  # HandbrakeCLI inexplicably uses a comma instead of a colon to
+  # HandBrakeCLI inexplicably uses a comma instead of a colon to
   # separate the track identifier from the track data in the "audio
   # tracks" and "subtitle tracks" nodes, so we "massage" these parsed
   # nodes to get a consistent parsed reperesentation.
