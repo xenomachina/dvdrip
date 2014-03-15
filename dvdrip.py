@@ -159,24 +159,28 @@ def ParseNode(scan, pos, indent):
     node = value
   return pos, node
 
-def RipTitle(title, input, output, dry_run, verbose):
+def RipTitle(task, input, output, dry_run, verbose):
   if verbose:
-    print('Scan:')
-    pprint(title.info)
+    print('Title Scan:')
+    pprint(task.title.info)
     print('-' * 78)
 
-  audio_tracks = title.info['audio tracks'].keys()
+  audio_tracks = task.title.info['audio tracks'].keys()
   audio_encoders = ['faac'] * len(audio_tracks)
-  subtitles = title.info['subtitle tracks'].keys()
+  subtitles = task.title.info['subtitle tracks'].keys()
 
   args = [
     HANDBRAKE,
-    '--title', str(title.number),
+    '--title', str(task.title.number),
     '--preset', "High Profile",
     '--encoder', 'x264',
     '--audio', ','.join(audio_tracks),
     '--aencoder', ','.join(audio_encoders),
   ]
+  if task.chapter is not None:
+    args += [
+      '--chapters', str(task.chapter),
+    ]
   if subtitles:
     args += [
       '--subtitle', ','.join(subtitles),
@@ -223,6 +227,7 @@ def only(iterable):
   return x
 
 Title = namedtuple('Title', ['number', 'info'])
+Task = namedtuple('Task', ['title', 'chapter'])
 
 def ScanTitles(verbose):
   """
@@ -272,11 +277,15 @@ def FindMountPoint(dev):
   raise UserError('%r not mounted.' % dev)
 
 def main():
+  # TODO remove globals
   global input, output
   parser = argparse.ArgumentParser(description='Rip a DVD.')
   parser.add_argument('-v', '--verbose',
       action='store_true',
       help="increase verbosity")
+  parser.add_argument('-c', '--chapter_split',
+      action='store_true',
+      help="split each chapter out into a separate file")
   parser.add_argument('-n', '--dry-run',
       action='store_true',
       help="Don't actually write anything.")
@@ -292,7 +301,6 @@ def main():
   args = parser.parse_args()
   input = args.input
   output = args.output
-
 
   if stat.S_ISBLK(os.stat(input).st_mode):
     input = FindMountPoint(input)
@@ -316,28 +324,45 @@ def main():
   if not titles:
     print("No titles to rip!")
   else:
-    if (len(titles) > 1):
-      def ComputeFileName(title):
-        return os.path.join(output, 'Title %d.mp4' % title.number)
+    tasks = []
+    for title in titles:
+      num_chapters = len(title.info['chapters'])
+      if args.chapter_split and num_chapters > 1:
+        for chapter in range(1, num_chapters + 1):
+          tasks.append(Task(title, chapter))
+      else:
+        tasks.append(Task(title, None))
+
+    if (len(tasks) > 1):
+      def ComputeFileName(task):
+        if task.chapter is None:
+          return os.path.join(output, 'Title %02d.mp4' % task.title.number)
+        else:
+          return os.path.join(output,
+              'Title %02d_%02d.mp4' % (task.title.number, task.chapter))
       if not args.dry_run:
         os.makedirs(output)
     else:
-      def ComputeFileName(title):
+      def ComputeFileName(task):
         return '%s.mp4' % output
 
     # Don't stomp on existing files
-    for title in titles:
-      fnam = ComputeFileName(title)
+    for task in tasks:
+      fnam = ComputeFileName(task)
       if os.path.exists(fnam):
         raise UserError('%r already exists!' % fnam)
 
-    for title in titles:
-      filename = ComputeFileName(title)
+    for task in tasks:
+      filename = ComputeFileName(task)
       print('=' * 78)
-      print('Title %s / %s => %r' % (title.number, len(titles), filename))
+      if task.chapter is None:
+        print('Title %s / %s => %r' % (task.title.number, len(titles), filename))
+      else:
+        num_chapters = len(task.title.info['chapters'])
+        print('Title %s / %s , Chapter %s / %s=> %r'
+            % (task.title.number, len(titles), task.chapter, num_chapters, filename))
       print('-' * 78)
-      RipTitle(title, input, filename, args.dry_run,
-          verbose=args.verbose)
+      RipTitle(task, input, filename, args.dry_run, verbose=args.verbose)
 
     print('=' * 78)
     if not args.dry_run:
