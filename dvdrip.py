@@ -10,6 +10,7 @@ import sys
 import time
 
 from pprint import pprint
+from collections import namedtuple
 
 """
 This script exists because I wanted a simple way to back up DVDs with
@@ -158,25 +159,19 @@ def ParseNode(scan, pos, indent):
     node = value
   return pos, node
 
-TITLE_KEY_RE = re.compile(r'title (\d+)')
-
-def RipTitle(title_number, title, input, output, title_count, dry_run,
-    verbose):
-  print('=' * 78)
-  print('Title %s / %s => %r' % (title_number, title_count, output))
-  print('-' * 78)
+def RipTitle(title, input, output, dry_run, verbose):
   if verbose:
     print('Scan:')
-    pprint(title)
+    pprint(title.info)
     print('-' * 78)
 
-  audio_tracks = title['audio tracks'].keys()
+  audio_tracks = title.info['audio tracks'].keys()
   audio_encoders = ['faac'] * len(audio_tracks)
-  subtitles = title['subtitle tracks'].keys()
+  subtitles = title.info['subtitle tracks'].keys()
 
   args = [
     HANDBRAKE,
-    '--title', title_number,
+    '--title', str(title.number),
     '--preset', "High Profile",
     '--encoder', 'x264',
     '--audio', ','.join(audio_tracks),
@@ -202,42 +197,50 @@ def RipTitle(title_number, title, input, output, title_count, dry_run,
     else:
       check_err(args)
 
-def first(iterable):
-  return next(iter(iterable))
-
-def ParseTitleKey(key):
-  return TITLE_KEY_RE.match(key).group(1)
-
 def ScanTitle(i):
   return tuple(check_err([
     HANDBRAKE,
+    '--no-dvdnav',
     '--scan',
     '--title', str(i),
     '-i',
     input], stdout=subprocess.PIPE).split('\n'))
 
+def only(iterable):
+  """
+  Return the one and only element in iterable.
+
+  Raises an ValueError if iterable has more than one item, and an
+  IndexError if it has none.
+  """
+  count = 0
+  for x in iterable:
+    count += 1
+    if count != 1:
+      raise ValueError("too many elements in iterable")
+  if count != 1:
+    raise IndexError("no elements in iterable %r" % iterable)
+  return x
+
+Title = namedtuple('Title', ['number', 'info'])
+
 def ScanTitles(verbose):
   """
-  Returns a tuple (title_count, titles) where title_count is the number
-  of titles, and titles is an iterable of parsed titles.
+  Returns an iterable of parsed titles.
   """
-  scan = ScanTitle(1)
-  title_count = FindTitleCount(scan, verbose)
-  def GenTitleScans(title_count, scan):
-    title = ParseTitleScan(ExtractTitleScan(scan))
-    del scan
+  raw_scan = ScanTitle(1)
+  title_count = FindTitleCount(raw_scan, verbose)
+  title_name, title_info = only(ParseTitleScan(ExtractTitleScan(raw_scan)).items())
+  del raw_scan
 
-    #TODO: factor out 'only' function?
-    assert len(title) == 1
-    assert 'title 1' in title
-    yield first(title.items())
+  def MakeTitle(name, number, info):
+    assert ('title %d' % number) == name
+    return Title(number, info)
 
-    for i in range(2, title_count + 1):
-      title = ParseTitleScan(ExtractTitleScan(ScanTitle(i)))
-      assert len(title) == 1
-      assert ('title %d' % i) in title
-      yield first(title.items())
-  return (title_count, GenTitleScans(title_count, scan))
+  yield MakeTitle(title_name, 1, title_info)
+  for i in range(2, title_count + 1):
+    title_name, title_info = only(ParseTitleScan(ExtractTitleScan(ScanTitle(i))).items())
+    yield MakeTitle(title_name, i, title_info)
 
 
 TOTAL_EJECT_SECONDS = 5
@@ -300,39 +303,41 @@ def main():
   print('Writing to %r' % output)
   print()
 
-  title_count, titles = ScanTitles(args.verbose)
-  if args.main_feature and title_count > 1:
-    print('Attempting to determine main feature of %d titles...' % title_count)
+  titles = list(ScanTitles(args.verbose))
+
+  if args.main_feature and len(titles) > 1:
+    print('Attempting to determine main feature of %d titles...' % len(titles))
     main_feature = max(titles,
-        key=lambda key_title: ParseDuration(key_title[1]['duration']))
-    title_count, titles = 1, [main_feature]
-    print('Selected %r as main feature.' % titles[0][0])
+        key=lambda title: ParseDuration(title.info['duration']))
+    titles = [main_feature]
+    print('Selected %r as main feature.' % only(titles).number)
     print()
 
-  if title_count < 1:
+  if not titles:
     print("No titles to rip!")
   else:
-    if (title_count > 1):
-      def ComputeFileName(key):
-        return os.path.join(output, '%s.mp4' % key.capitalize())
+    if (len(titles) > 1):
+      def ComputeFileName(title):
+        return os.path.join(output, 'Title %d.mp4' % title.number)
       if not args.dry_run:
         os.makedirs(output)
     else:
-      def ComputeFileName(key):
+      def ComputeFileName(title):
         return '%s.mp4' % output
 
-    # Reify titles, as we're planning in iterating over it twice.
-    titles = list(titles)
-
     # Don't stomp on existing files
-    for key, title in titles:
-      fnam = ComputeFileName(key)
+    for title in titles:
+      fnam = ComputeFileName(title)
       if os.path.exists(fnam):
         raise UserError('%r already exists!' % fnam)
 
-    for key, title in titles:
-      RipTitle(ParseTitleKey(key), title, input, ComputeFileName(key),
-          title_count, args.dry_run, verbose=args.verbose)
+    for title in titles:
+      filename = ComputeFileName(title)
+      print('=' * 78)
+      print('Title %s / %s => %r' % (title.number, len(titles), filename))
+      print('-' * 78)
+      RipTitle(title, input, filename, args.dry_run,
+          verbose=args.verbose)
 
     print('=' * 78)
     if not args.dry_run:
