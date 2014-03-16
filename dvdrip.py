@@ -159,57 +159,6 @@ def ParseNode(scan, pos, indent):
     node = value
   return pos, node
 
-def RipTitle(task, input, output, dry_run, verbose):
-  if verbose:
-    print('Title Scan:')
-    pprint(task.title.info)
-    print('-' * 78)
-
-  audio_tracks = task.title.info['audio tracks'].keys()
-  audio_encoders = ['faac'] * len(audio_tracks)
-  subtitles = task.title.info['subtitle tracks'].keys()
-
-  args = [
-    HANDBRAKE,
-    '--title', str(task.title.number),
-    '--preset', "High Profile",
-    '--encoder', 'x264',
-    '--audio', ','.join(audio_tracks),
-    '--aencoder', ','.join(audio_encoders),
-  ]
-  if task.chapter is not None:
-    args += [
-      '--chapters', str(task.chapter),
-    ]
-  if subtitles:
-    args += [
-      '--subtitle', ','.join(subtitles),
-    ]
-  args += [
-    '--markers',
-    '--optimize',
-    '--no-dvdnav',
-    '--input', input,
-    '--output', output,
-  ]
-  if verbose:
-    print(' '.join(('\n  ' + a) if a.startswith('-') else a for a in args))
-    print('-' * 78)
-  if not dry_run:
-    if verbose:
-      subprocess.call(args)
-    else:
-      check_err(args)
-
-def ScanTitle(i):
-  return tuple(check_err([
-    HANDBRAKE,
-    '--no-dvdnav',
-    '--scan',
-    '--title', str(i),
-    '-i',
-    input], stdout=subprocess.PIPE).split('\n'))
-
 def only(iterable):
   """
   Return the one and only element in iterable.
@@ -229,35 +178,94 @@ def only(iterable):
 Title = namedtuple('Title', ['number', 'info'])
 Task = namedtuple('Task', ['title', 'chapter'])
 
-def ScanTitles(verbose):
-  """
-  Returns an iterable of parsed titles.
-  """
-  raw_scan = ScanTitle(1)
-  title_count = FindTitleCount(raw_scan, verbose)
-  title_name, title_info = only(ParseTitleScan(ExtractTitleScan(raw_scan)).items())
-  del raw_scan
-
-  def MakeTitle(name, number, info):
-    assert ('title %d' % number) == name
-    return Title(number, info)
-
-  yield MakeTitle(title_name, 1, title_info)
-  for i in range(2, title_count + 1):
-    title_name, title_info = only(ParseTitleScan(ExtractTitleScan(ScanTitle(i))).items())
-    yield MakeTitle(title_name, i, title_info)
-
-
 TOTAL_EJECT_SECONDS = 5
 EJECT_ATTEMPTS_PER_SECOND = 10
 
-def Eject(device):
-  # TODO: this should really be a while loop that terminates once a
-  # deadline is met.
-  for i in range(TOTAL_EJECT_SECONDS * EJECT_ATTEMPTS_PER_SECOND):
-    if not subprocess.call(['eject', device]):
-      return
-    time.sleep(1.0 / EJECT_ATTEMPTS_PER_SECOND)
+class DVD:
+  def __init__(self, mountpoint):
+    if stat.S_ISBLK(os.stat(mountpoint).st_mode):
+      mountpoint = FindMountPoint(mountpoint)
+    # TODO: don't abuse assert like this
+    assert os.path.isdir(mountpoint), '%r is not a directory' % mountpoint
+    self.mountpoint = mountpoint
+
+  def RipTitle(self, task, output, dry_run, verbose):
+    if verbose:
+      print('Title Scan:')
+      pprint(task.title.info)
+      print('-' * 78)
+
+    audio_tracks = task.title.info['audio tracks'].keys()
+    audio_encoders = ['faac'] * len(audio_tracks)
+    subtitles = task.title.info['subtitle tracks'].keys()
+
+    args = [
+      HANDBRAKE,
+      '--title', str(task.title.number),
+      '--preset', "High Profile",
+      '--encoder', 'x264',
+      '--audio', ','.join(audio_tracks),
+      '--aencoder', ','.join(audio_encoders),
+    ]
+    if task.chapter is not None:
+      args += [
+        '--chapters', str(task.chapter),
+      ]
+    if subtitles:
+      args += [
+        '--subtitle', ','.join(subtitles),
+      ]
+    args += [
+      '--markers',
+      '--optimize',
+      '--no-dvdnav',
+      '--input', self.mountpoint,
+      '--output', output,
+    ]
+    if verbose:
+      print(' '.join(('\n  ' + a) if a.startswith('-') else a for a in args))
+      print('-' * 78)
+    if not dry_run:
+      if verbose:
+        subprocess.call(args)
+      else:
+        check_err(args)
+
+  def ScanTitle(self, i):
+    return tuple(check_err([
+      HANDBRAKE,
+      '--no-dvdnav',
+      '--scan',
+      '--title', str(i),
+      '-i',
+      self.mountpoint], stdout=subprocess.PIPE).split('\n'))
+
+  def ScanTitles(self, verbose):
+    """
+    Returns an iterable of parsed titles.
+    """
+    raw_scan = self.ScanTitle(1)
+    title_count = FindTitleCount(raw_scan, verbose)
+    title_name, title_info = only(ParseTitleScan(ExtractTitleScan(raw_scan)).items())
+    del raw_scan
+
+    def MakeTitle(name, number, info):
+      assert ('title %d' % number) == name
+      return Title(number, info)
+
+    yield MakeTitle(title_name, 1, title_info)
+    for i in range(2, title_count + 1):
+      title_name, title_info = only(
+          ParseTitleScan(ExtractTitleScan(self.ScanTitle(i))).items())
+      yield MakeTitle(title_name, i, title_info)
+
+  def Eject(self):
+    # TODO: this should really be a while loop that terminates once a
+    # deadline is met.
+    for i in range(TOTAL_EJECT_SECONDS * EJECT_ATTEMPTS_PER_SECOND):
+      if not subprocess.call(['eject', self.mountpoint]):
+        return
+      time.sleep(1.0 / EJECT_ATTEMPTS_PER_SECOND)
 
 def ParseDuration(s):
   result = 0
@@ -277,8 +285,6 @@ def FindMountPoint(dev):
   raise UserError('%r not mounted.' % dev)
 
 def main():
-  # TODO remove globals
-  global input, output
   parser = argparse.ArgumentParser(description='Rip a DVD.')
   parser.add_argument('-v', '--verbose',
       action='store_true',
@@ -302,16 +308,12 @@ def main():
   input = args.input
   output = args.output
 
-  if stat.S_ISBLK(os.stat(input).st_mode):
-    input = FindMountPoint(input)
-
-  # TODO: don't abuse assert like this
-  assert os.path.isdir(input), '%r is not a directory' % input
-  print('Reading from %r' % input)
+  dvd = DVD(input)
+  print('Reading from %r' % dvd.mountpoint)
   print('Writing to %r' % output)
   print()
 
-  titles = list(ScanTitles(args.verbose))
+  titles = list(dvd.ScanTitles(args.verbose))
 
   if args.main_feature and len(titles) > 1:
     print('Attempting to determine main feature of %d titles...' % len(titles))
@@ -362,11 +364,11 @@ def main():
         print('Title %s / %s , Chapter %s / %s=> %r'
             % (task.title.number, len(titles), task.chapter, num_chapters, filename))
       print('-' * 78)
-      RipTitle(task, input, filename, args.dry_run, verbose=args.verbose)
+      dvd.RipTitle(task, filename, args.dry_run, verbose=args.verbose)
 
     print('=' * 78)
     if not args.dry_run:
-      Eject(input)
+      dvd.Eject()
 
 if __name__ == '__main__':
   error = None
