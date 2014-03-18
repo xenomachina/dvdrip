@@ -409,7 +409,7 @@ def DisplayScan(titles):
     size = ParseSize(info['size'])
     xaspect, yaspect = ComputeAspectRatio(size)
     duration = ExtractDuration('duration '+ info['duration'])
-    print('Title %d/%d: %s  %d×%d  %d:%d  %3g fps' %
+    print('Title % 3d/% 3d: %s  %d×%d  %d:%d  %3g fps' %
         (title.number, len(titles), duration, size.width,
           size.height, xaspect, yaspect, size.fps))
     if len(info['chapters']) > 1:
@@ -417,7 +417,7 @@ def DisplayScan(titles):
         print('  chapter % 3d: %s' % (chapter.number, chapter.duration))
         # TODO: render duration bars?
     for at in ParseAudioTrack(info['audio tracks']):
-      print('  audio % 3d: %s (%sch)  %s' %
+      print('  aud % 3d: %s (%sch)  %s' %
           (at.number, at.lang, at.channels, at.extras))
     print()
 
