@@ -361,15 +361,43 @@ def ComputeAspectRatio(size):
   d = gcd(w, h)
   return (w // d, h // d)
 
+DURATION_REGEX = re.compile(
+    r'^(?:.*,)?\s*duration\s+(\d\d):(\d\d):(\d\d)\s*(?:,.*)?$')
+
+class Duration(namedtuple('Duration', 'hours minutes seconds')):
+  def __str__(self):
+    return '%02d:%02d:%02d' % (self)
+
+  def in_seconds(self):
+    return 60 * (60 * self.hours + self.minutes) + self.seconds
+
+def ExtractDuration(s):
+  return Duration(*map(int, DURATION_REGEX.match(s).groups()))
+
+Chapter = namedtuple('Chapter', 'number duration')
+
+def ParseChapters(d):
+  """
+  Parses dictionary of (str) chapter numbers to chapter.
+
+  Result will be an iterable of Chapter objects, sorted by number.
+  """
+  for number, info in sorted(((int(n), ch_info) for (n, ch_info) in d.items())):
+    yield Chapter(number, ExtractDuration(info))
+
 def DisplayScan(titles):
   for title in titles:
     info = title.info
     pprint(info)
     size = ParseSize(info['size'])
     xaspect, yaspect = ComputeAspectRatio(size)
+    duration = ExtractDuration('duration '+ info['duration'])
     print('Title %d/%d: %s  %d×%d  %d:%d  %3g fps' %
-        (title.number, len(titles), info['duration'], size.width,
+        (title.number, len(titles), duration, size.width,
           size.height, xaspect, yaspect, size.fps))
+    if len(info['chapters']) > 1:
+      for chapter in ParseChapters(info['chapters']):
+        print('  chapter % 3d: %s' % (chapter.number, chapter.duration))
     print()
 
 def ParseArgs():
