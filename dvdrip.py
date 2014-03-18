@@ -340,6 +340,9 @@ def PerformTasks(dvd, tasks, title_count, filenames,
     print('-' * 78)
     dvd.RipTitle(task, filename, dry_run, verbose)
 
+def DisplayScan(titles):
+  pprint(titles)
+
 def ParseArgs():
   parser = argparse.ArgumentParser(description='Rip a DVD.')
   parser.add_argument('-v', '--verbose',
@@ -351,6 +354,9 @@ def ParseArgs():
   parser.add_argument('-n', '--dry-run',
       action='store_true',
       help="Don't actually write anything.")
+  parser.add_argument('--scan',
+      action='store_true',
+      help="Display scan of disc; do not rip.")
   parser.add_argument('--main-feature',
       action='store_true',
       help="Rip only the main feature title.")
@@ -359,8 +365,12 @@ def ParseArgs():
   parser.add_argument('output',
       help="""Output location. Extension is added if only one title
       being ripped, otherwise, a directory will be created to contain
-      ripped titles.""")
-  return parser.parse_args()
+      ripped titles.""",
+      nargs='?')
+  args = parser.parse_args()
+  if not args.scan and args.output is None:
+    raise UserError("output argument is required")
+  return args
 
 def main():
   args = ParseArgs()
@@ -368,27 +378,30 @@ def main():
   print('Reading from %r' % dvd.mountpoint)
   titles = list(dvd.ScanTitles(args.verbose))
 
-  if args.main_feature and len(titles) > 1:
-    titles = [FindMainFeature(titles, args.verbose)]
-
-  if not titles:
-    print("No titles to rip!")
+  if args.scan:
+    DisplayScan(titles)
   else:
-    print('Writing to %r' % args.output)
-    tasks = list(ConstructTasks(titles, args.chapter_split))
+    if args.main_feature and len(titles) > 1:
+      titles = [FindMainFeature(titles, args.verbose)]
 
-    filenames = TaskFilenames(tasks, args.output, dry_run=args.dry_run)
-    # Don't stomp on existing files
-    for filename in filenames:
-      if os.path.exists(filename):
-        raise UserError('%r already exists!' % filename)
+    if not titles:
+      print("No titles to rip!")
+    else:
+      print('Writing to %r' % args.output)
+      tasks = list(ConstructTasks(titles, args.chapter_split))
 
-    PerformTasks(dvd, tasks, len(titles), filenames, dry_run=args.dry_run,
-        verbose=args.verbose)
+      filenames = TaskFilenames(tasks, args.output, dry_run=args.dry_run)
+      # Don't stomp on existing files
+      for filename in filenames:
+        if os.path.exists(filename):
+          raise UserError('%r already exists!' % filename)
 
-    print('=' * 78)
-    if not args.dry_run:
-      dvd.Eject()
+      PerformTasks(dvd, tasks, len(titles), filenames, dry_run=args.dry_run,
+          verbose=args.verbose)
+
+      print('=' * 78)
+      if not args.dry_run:
+        dvd.Eject()
 
 if __name__ == '__main__':
   error = None
