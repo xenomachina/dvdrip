@@ -38,6 +38,14 @@ This script has been tested on both Linux and Mac OS X with HandBrakeCLI and
 VLC installed (and also MacPorts in the case of Mac OS X).
 """
 
+
+# These characters are squares that are empty, left-side filled, right side
+# filled, and completely filled. It's easiest to think of them as representing
+# the binary numbers 00, 01, 10, and 11 (but with most significant on the
+# right, not the left). Those values correspond to their indices in the string.
+BAR_CHARS='\u25a1\u25e7\u25e8\u25a0'
+
+
 class UserError(Exception):
   def __init__(self, message):
     self.message = message
