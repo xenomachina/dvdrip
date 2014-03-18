@@ -11,6 +11,7 @@ import time
 
 from pprint import pprint
 from collections import namedtuple
+from fractions import gcd
 
 """
 This script exists because I wanted a simple way to back up DVDs with
@@ -340,8 +341,36 @@ def PerformTasks(dvd, tasks, title_count, filenames,
     print('-' * 78)
     dvd.RipTitle(task, filename, dry_run, verbose)
 
+Size = namedtuple('Size',
+    ['width', 'height', 'pix_aspect_width', 'pix_aspect_height', 'fps'])
+
+SIZE_REGEX = re.compile(
+  r'^\s*(\d+)x(\d+),\s*'
+  r'pixel aspect: (\d+)/(\d+),\s*'
+  r'display aspect: (?:\d+(?:\.\d+)),\s*'
+  r'(\d+(?:\.\d+)) fps\s*$')
+
+SIZE_CTORS = [int] * 4 + [float]
+
+def ParseSize(s):
+  return Size(*(f(x) for f, x in zip(SIZE_CTORS, SIZE_REGEX.match(s).groups())))
+
+def ComputeAspectRatio(size):
+  w = size.width * size.pix_aspect_width
+  h = size.height * size.pix_aspect_height
+  d = gcd(w, h)
+  return (w // d, h // d)
+
 def DisplayScan(titles):
-  pprint(titles)
+  for title in titles:
+    info = title.info
+    pprint(info)
+    size = ParseSize(info['size'])
+    xaspect, yaspect = ComputeAspectRatio(size)
+    print('Title %d/%d: %s  %d×%d  %d:%d  %3g fps' %
+        (title.number, len(titles), info['duration'], size.width,
+          size.height, xaspect, yaspect, size.fps))
+    print()
 
 def ParseArgs():
   parser = argparse.ArgumentParser(description='Rip a DVD.')
