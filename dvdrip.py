@@ -413,5 +413,5 @@ if __name__ == '__main__':
     error = exc.message
 
   if error is not None:
-    print('ERROR: ' + error, file=sys.stderr)
+    print('%s: error: %s' % (os.path.basename(sys.argv[0]), error), file=sys.stderr)
     sys.exit(1)
