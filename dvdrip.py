@@ -292,7 +292,25 @@ def FindMountPoint(dev):
         return line[-1]
   raise UserError('%r not mounted.' % dev)
 
-def main():
+def FindMainFeature(titles, verbose=False):
+  if verbose:
+    print('Attempting to determine main feature of %d titles...' % len(titles))
+  main_feature = max(titles,
+      key=lambda title: ParseDuration(title.info['duration']))
+  if verbose:
+    print('Selected %r as main feature.' % main_feature.number)
+    print()
+
+def ConstructTasks(titles, chapter_split):
+  for title in titles:
+    num_chapters = len(title.info['chapters'])
+    if chapter_split and num_chapters > 1:
+      for chapter in range(1, num_chapters + 1):
+        yield Task(title, chapter)
+    else:
+      yield Task(title, None)
+
+def ParseArgs():
   parser = argparse.ArgumentParser(description='Rip a DVD.')
   parser.add_argument('-v', '--verbose',
       action='store_true',
@@ -312,67 +330,63 @@ def main():
       help="""Output location. Extension is added if only one title
       being ripped, otherwise, a directory will be created to contain
       ripped titles.""")
-  args = parser.parse_args()
-  input = args.input
-  output = args.output
+  return parser.parse_args()
 
-  dvd = DVD(input)
+def TaskFilenames(tasks, output, dry_run=False):
+  if (len(tasks) > 1):
+    def ComputeFileName(task):
+      if task.chapter is None:
+        return os.path.join(output, 'Title %02d.mp4' % task.title.number)
+      else:
+        return os.path.join(output,
+            'Title %02d_%02d.mp4' % (task.title.number, task.chapter))
+    if not dry_run:
+      os.makedirs(output)
+  else:
+    def ComputeFileName(task):
+      return '%s.mp4' % output
+  result = [ComputeFileName(task) for task in tasks]
+  assert len(set(result)) == len(result), "multiple tasks use same filename"
+  return result
+
+def PerformTasks(dvd, tasks, title_count, filenames,
+    dry_run=False, verbose=False):
+  for task, filename in zip(tasks, filenames):
+    print('=' * 78)
+    if task.chapter is None:
+      print('Title %s / %s => %r' % (task.title.number, len(titles), filename))
+    else:
+      num_chapters = len(task.title.info['chapters'])
+      print('Title %s / %s , Chapter %s / %s=> %r'
+          % (task.title.number, title_count, task.chapter, num_chapters, filename))
+    print('-' * 78)
+    dvd.RipTitle(task, filename, dry_run, verbose)
+
+def main():
+  args = ParseArgs()
+  dvd = DVD(args.input)
   print('Reading from %r' % dvd.mountpoint)
-  print('Writing to %r' % output)
+  print('Writing to %r' % args.output)
   print()
 
   titles = list(dvd.ScanTitles(args.verbose))
 
   if args.main_feature and len(titles) > 1:
-    print('Attempting to determine main feature of %d titles...' % len(titles))
-    main_feature = max(titles,
-        key=lambda title: ParseDuration(title.info['duration']))
-    titles = [main_feature]
-    print('Selected %r as main feature.' % only(titles).number)
-    print()
+    titles = [FindMainFeature(titles, args.verbose)]
 
   if not titles:
     print("No titles to rip!")
   else:
-    tasks = []
-    for title in titles:
-      num_chapters = len(title.info['chapters'])
-      if args.chapter_split and num_chapters > 1:
-        for chapter in range(1, num_chapters + 1):
-          tasks.append(Task(title, chapter))
-      else:
-        tasks.append(Task(title, None))
+    tasks = list(ConstructTasks(titles, args.chapter_split))
 
-    if (len(tasks) > 1):
-      def ComputeFileName(task):
-        if task.chapter is None:
-          return os.path.join(output, 'Title %02d.mp4' % task.title.number)
-        else:
-          return os.path.join(output,
-              'Title %02d_%02d.mp4' % (task.title.number, task.chapter))
-      if not args.dry_run:
-        os.makedirs(output)
-    else:
-      def ComputeFileName(task):
-        return '%s.mp4' % output
-
+    filenames = TaskFilenames(tasks, args.output, dry_run=args.dry_run)
     # Don't stomp on existing files
-    for task in tasks:
-      fnam = ComputeFileName(task)
-      if os.path.exists(fnam):
-        raise UserError('%r already exists!' % fnam)
+    for filename in filenames:
+      if os.path.exists(filename):
+        raise UserError('%r already exists!' % filename)
 
-    for task in tasks:
-      filename = ComputeFileName(task)
-      print('=' * 78)
-      if task.chapter is None:
-        print('Title %s / %s => %r' % (task.title.number, len(titles), filename))
-      else:
-        num_chapters = len(task.title.info['chapters'])
-        print('Title %s / %s , Chapter %s / %s=> %r'
-            % (task.title.number, len(titles), task.chapter, num_chapters, filename))
-      print('-' * 78)
-      dvd.RipTitle(task, filename, args.dry_run, verbose=args.verbose)
+    PerformTasks(dvd, tasks, len(titles), filenames, dry_run=args.dry_run,
+        verbose=args.verbose)
 
     print('=' * 78)
     if not args.dry_run:
