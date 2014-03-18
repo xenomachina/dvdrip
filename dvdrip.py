@@ -310,28 +310,6 @@ def ConstructTasks(titles, chapter_split):
     else:
       yield Task(title, None)
 
-def ParseArgs():
-  parser = argparse.ArgumentParser(description='Rip a DVD.')
-  parser.add_argument('-v', '--verbose',
-      action='store_true',
-      help="increase verbosity")
-  parser.add_argument('-c', '--chapter_split',
-      action='store_true',
-      help="split each chapter out into a separate file")
-  parser.add_argument('-n', '--dry-run',
-      action='store_true',
-      help="Don't actually write anything.")
-  parser.add_argument('--main-feature',
-      action='store_true',
-      help="Rip only the main feature title.")
-  parser.add_argument('input',
-      help="Volume to rip (must be a directory).")
-  parser.add_argument('output',
-      help="""Output location. Extension is added if only one title
-      being ripped, otherwise, a directory will be created to contain
-      ripped titles.""")
-  return parser.parse_args()
-
 def TaskFilenames(tasks, output, dry_run=False):
   if (len(tasks) > 1):
     def ComputeFileName(task):
@@ -361,6 +339,28 @@ def PerformTasks(dvd, tasks, title_count, filenames,
           % (task.title.number, title_count, task.chapter, num_chapters, filename))
     print('-' * 78)
     dvd.RipTitle(task, filename, dry_run, verbose)
+
+def ParseArgs():
+  parser = argparse.ArgumentParser(description='Rip a DVD.')
+  parser.add_argument('-v', '--verbose',
+      action='store_true',
+      help="Increase verbosity.")
+  parser.add_argument('-c', '--chapter_split',
+      action='store_true',
+      help="Split each chapter out into a separate file.")
+  parser.add_argument('-n', '--dry-run',
+      action='store_true',
+      help="Don't actually write anything.")
+  parser.add_argument('--main-feature',
+      action='store_true',
+      help="Rip only the main feature title.")
+  parser.add_argument('input',
+      help="Volume to rip (must be a directory).")
+  parser.add_argument('output',
+      help="""Output location. Extension is added if only one title
+      being ripped, otherwise, a directory will be created to contain
+      ripped titles.""")
+  return parser.parse_args()
 
 def main():
   args = ParseArgs()
