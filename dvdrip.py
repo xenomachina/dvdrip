@@ -382,8 +382,25 @@ def ParseChapters(d):
 
   Result will be an iterable of Chapter objects, sorted by number.
   """
-  for number, info in sorted(((int(n), ch_info) for (n, ch_info) in d.items())):
+  for number, info in sorted(((int(n), info) for (n, info) in d.items())):
     yield Chapter(number, ExtractDuration(info))
+
+AUDIO_TRACK_REGEX = re.compile(
+    r'^(\S+)\s*((?:\([^)]*\)\s*)*)(?:,\s*(.*$))?')
+
+AUDIO_TRACK_FIELD_REGEX = re.compile(
+    r'^\(([^)]*)\)\s*\(([^)]*?)\s*ch\)\s*\(iso639-2:\s*([^)]*)\)$')
+
+AudioTrack = namedtuple('AudioTrack',
+    'number lang codec channels iso639_2 extras')
+
+def ParseAudioTrack(d):
+  for number, info in sorted(((int(n), info) for (n, info) in d.items())):
+    lang, field_string, extras = AUDIO_TRACK_REGEX.match(info).groups()
+    codec, channels, iso639_2 = \
+        AUDIO_TRACK_FIELD_REGEX.match(field_string).groups()
+    yield AudioTrack(number, lang, codec, channels, iso639_2, extras)
+
 
 def DisplayScan(titles):
   for title in titles:
@@ -398,6 +415,9 @@ def DisplayScan(titles):
     if len(info['chapters']) > 1:
       for chapter in ParseChapters(info['chapters']):
         print('  chapter % 3d: %s' % (chapter.number, chapter.duration))
+    for at in ParseAudioTrack(info['audio tracks']):
+      print('  audio % 3d: %s (%sch)  %s' %
+          (at.number, at.lang, at.channels, at.extras))
     print()
 
 def ParseArgs():
