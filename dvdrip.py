@@ -366,9 +366,6 @@ def main():
   args = ParseArgs()
   dvd = DVD(args.input)
   print('Reading from %r' % dvd.mountpoint)
-  print('Writing to %r' % args.output)
-  print()
-
   titles = list(dvd.ScanTitles(args.verbose))
 
   if args.main_feature and len(titles) > 1:
@@ -377,6 +374,7 @@ def main():
   if not titles:
     print("No titles to rip!")
   else:
+    print('Writing to %r' % args.output)
     tasks = list(ConstructTasks(titles, args.chapter_split))
 
     filenames = TaskFilenames(tasks, args.output, dry_run=args.dry_run)
