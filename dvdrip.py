@@ -415,6 +415,7 @@ def DisplayScan(titles):
     if len(info['chapters']) > 1:
       for chapter in ParseChapters(info['chapters']):
         print('  chapter % 3d: %s' % (chapter.number, chapter.duration))
+        # TODO: render duration bars?
     for at in ParseAudioTrack(info['audio tracks']):
       print('  audio % 3d: %s (%sch)  %s' %
           (at.number, at.lang, at.channels, at.extras))
