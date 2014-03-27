@@ -401,6 +401,19 @@ def ParseAudioTracks(d):
         AUDIO_TRACK_FIELD_REGEX.match(field_string).groups()
     yield AudioTrack(number, lang, codec, channels, iso639_2, extras)
 
+SUB_TRACK_REGEX = re.compile(
+    r'^(\S(?:[^(]*\S)?)\s+\(iso639-2:\s*([^)]+)\)\s*((?:\S(?:.*\S)?)?)$')
+
+SubtitleTrack = namedtuple('SubtitleTrack',
+    'number name iso639_2 extras')
+
+def ParseSubtitleTracks(d):
+  for number, info in sorted(((int(n), info) for (n, info) in d.items())):
+    m = SUB_TRACK_REGEX.match(info)
+    assert m, 'UNMATCHED %r' % info
+    name, iso639_2, extras = m.groups()
+    yield SubtitleTrack(number, name, iso639_2, extras)
+
 
 def DisplayScan(titles):
   for title in titles:
@@ -419,6 +432,9 @@ def DisplayScan(titles):
     for at in ParseAudioTracks(info['audio tracks']):
       print('  audio % 3d: %s (%sch)  [%s]' %
           (at.number, at.lang, at.channels, at.extras))
+    for sub in ParseSubtitleTracks(info['subtitle tracks']):
+      print('  sub % 3d: %s  [%s]' %
+          (sub.number, sub.name, sub.extras))
     print()
 
 def ParseArgs():
