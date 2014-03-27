@@ -333,7 +333,7 @@ def PerformTasks(dvd, tasks, title_count, filenames,
   for task, filename in zip(tasks, filenames):
     print('=' * 78)
     if task.chapter is None:
-      print('Title %s / %s => %r' % (task.title.number, len(titles), filename))
+      print('Title %s / %s => %r' % (task.title.number, title_count, filename))
     else:
       num_chapters = len(task.title.info['chapters'])
       print('Title %s / %s , Chapter %s / %s=> %r'
