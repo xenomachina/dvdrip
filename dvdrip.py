@@ -416,20 +416,26 @@ def ParseSubtitleTracks(d):
 
 def RenderBar(start, length, total, width):
   end = start + length
-  start = int(round(start * width / total))
-  length = int(round(end * width / total)) - start
+  start = int(round(start * (width - 1) / total))
+  length = int(round(end * (width - 1) / total)) - start + 1
   return (
       '‥' * start +
       '■' * length +
       '‥' * (width - start - length))
 
+MAX_BAR_WIDTH = 50
+
 def DisplayScan(titles):
+  max_title_seconds = max(
+      ExtractDuration('duration ' + title.info['duration']).in_seconds()
+      for title in titles)
+
   for title in titles:
     info = title.info
     size = ParseSize(info['size'])
     xaspect, yaspect = ComputeAspectRatio(size)
     duration = ExtractDuration('duration ' + info['duration'])
-    total_seconds = duration.in_seconds()
+    title_seconds = duration.in_seconds()
     print('Title % 3d/% 3d: %s  %d×%d  %d:%d  %3g fps' %
         (title.number, len(titles), duration, size.width,
           size.height, xaspect, yaspect, size.fps))
@@ -442,7 +448,8 @@ def DisplayScan(titles):
     position = 0
     for chapter in ParseChapters(info['chapters']):
       seconds = chapter.duration.in_seconds()
-      bar = RenderBar(position, seconds, total_seconds, 50)
+      bar_width = int(round(MAX_BAR_WIDTH * title_seconds / max_title_seconds))
+      bar = RenderBar(position, seconds, title_seconds, bar_width)
       print('  chapter % 3d: %s ◖%s◗' % (chapter.number, chapter.duration, bar))
       position += seconds
     print()
