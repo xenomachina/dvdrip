@@ -424,16 +424,16 @@ def DisplayScan(titles):
     print('Title % 3d/% 3d: %s  %d×%d  %d:%d  %3g fps' %
         (title.number, len(titles), duration, size.width,
           size.height, xaspect, yaspect, size.fps))
-    if len(info['chapters']) > 1:
-      for chapter in ParseChapters(info['chapters']):
-        print('  chapter % 3d: %s' % (chapter.number, chapter.duration))
-        # TODO: render duration bars?
     for at in ParseAudioTracks(info['audio tracks']):
       print('  audio % 3d: %s (%sch)  [%s]' %
           (at.number, at.lang, at.channels, at.extras))
     for sub in ParseSubtitleTracks(info['subtitle tracks']):
       print('  sub % 3d: %s  [%s]' %
           (sub.number, sub.name, sub.extras))
+    if len(info['chapters']) > 1:
+      for chapter in ParseChapters(info['chapters']):
+        print('  chapter % 3d: %s' % (chapter.number, chapter.duration))
+        # TODO: render duration bars?
     print()
 
 def ParseArgs():
