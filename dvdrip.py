@@ -418,7 +418,6 @@ def ParseSubtitleTracks(d):
 def DisplayScan(titles):
   for title in titles:
     info = title.info
-    pprint(info)
     size = ParseSize(info['size'])
     xaspect, yaspect = ComputeAspectRatio(size)
     duration = ExtractDuration('duration '+ info['duration'])
