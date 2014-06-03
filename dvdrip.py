@@ -567,7 +567,7 @@ def ParseArgs():
   parser.add_argument('--main-feature',
       action='store_true',
       help="Rip only the main feature title.")
-  parser.add_argument('--titles',
+  parser.add_argument('-t', '--titles',
       default="*",
       help="Comma-separated list of title numbers to consider (starting at 1)"
           + " or * for all titles.")
