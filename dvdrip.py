@@ -127,7 +127,6 @@ from pprint import pprint
 from collections import namedtuple
 from fractions import gcd
 
-#TODO: rip Totoro
 
 class UserError(Exception):
   def __init__(self, message):
@@ -328,11 +327,12 @@ class DVD:
             print('< %s' % line.rstrip())
         yield line
 
-  def ScanTitles(self, verbose):
+  def ScanTitles(self, title_numbers, verbose):
     """
     Returns an iterable of parsed titles.
     """
-    raw_scan = tuple(self.ScanTitle(1))
+    first = title_numbers[0] if title_numbers else 1
+    raw_scan = tuple(self.ScanTitle(first))
     title_count = FindTitleCount(raw_scan, verbose)
     title_name, title_info = only(ParseTitleScan(ExtractTitleScan(raw_scan)).items())
     del raw_scan
@@ -342,8 +342,13 @@ class DVD:
         info['duration'] = ExtractDuration('duration ' + info['duration'])
         return Title(number, info)
 
-    yield MakeTitle(title_name, 1, title_info)
-    for i in range(2, title_count + 1):
+    yield MakeTitle(title_name, first, title_info)
+
+    to_scan = [x for x in range(1, title_count + 1)
+            if x != first
+            and ((not title_numbers)
+                 or x in title_numbers)]
+    for i in to_scan:
         title_info_names = ParseTitleScan(ExtractTitleScan(self.ScanTitle(i))).items()
         if title_info_names:
             title_name, title_info = only(title_info_names)
@@ -562,6 +567,10 @@ def ParseArgs():
   parser.add_argument('--main-feature',
       action='store_true',
       help="Rip only the main feature title.")
+  parser.add_argument('--titles',
+      default="*",
+      help="Comma-separated list of title numbers to consider (starting at 1)"
+          + " or * for all titles.")
   parser.add_argument('input',
       help="Volume to rip (must be a directory).")
   parser.add_argument('output',
@@ -574,16 +583,28 @@ def ParseArgs():
     raise UserError("output argument is required")
   return args
 
+def parse_titles_arg(titles_arg):
+    if titles_arg == '*':
+        return None # all titles
+    else:
+        try:
+            return list(map(int, titles_arg.split(',')))
+        except ValueError:
+            pass
+        raise UserError( "--titles must be * or list of ints, found %r" %
+                titles_arg)
 def main():
   args = ParseArgs()
   dvd = DVD(args.input, args.verbose)
   print('Reading from %r' % dvd.mountpoint)
-  titles = tuple(dvd.ScanTitles(args.verbose))
+  title_numbers = parse_titles_arg(args.titles)
+  titles = tuple(dvd.ScanTitles(title_numbers, args.verbose))
 
   if args.scan:
     DisplayScan(titles)
   else:
     if args.main_feature and len(titles) > 1:
+      # TODO: make this affect scan as well
       titles = [FindMainFeature(titles, args.verbose)]
 
     if not titles:
