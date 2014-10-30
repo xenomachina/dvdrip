@@ -115,6 +115,8 @@ Limitations
   HandBrakeCLI and VLC installed (and also MacPorts in the case of OS X).
 """
 
+# TODO: Detect if HandBrakeCLI is burning in vobsubs.
+
 import argparse
 import os
 import re
