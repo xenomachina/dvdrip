@@ -483,7 +483,7 @@ AUDIO_TRACK_REGEX = re.compile(
     r'^(\S+)\s*((?:\([^)]*\)\s*)*)(?:,\s*(.*))?$')
 
 AUDIO_TRACK_FIELD_REGEX = re.compile(
-    r'^\(([^)]*)\)\s*\(([^)]*?)\s*ch\)\s*\(iso639-2:\s*([^)]+)\)$')
+        r'^\(([^)]*)\)\s*\(([^)]*?)\s*ch\)\s*((?:\([^()]*\)\s*)*)\(iso639-2:\s*([^)]+)\)$')
 
 AudioTrack = namedtuple('AudioTrack',
     'number lang codec channels iso639_2 extras')
@@ -495,7 +495,9 @@ def ParseAudioTracks(d):
         lang, field_string, extras = m.groups()
         m2 = AUDIO_TRACK_FIELD_REGEX.match(field_string)
         if m2:
-            codec, channels, iso639_2 =  m2.groups()
+            codec, channels, more_extras, iso639_2 =  m2.groups()
+            if more_extras:
+                extras = more_extras + extras
             yield AudioTrack(number, lang, codec, channels, iso639_2, extras)
         else:
             warn('Cannot parse audio track fields %r' % field_string)
