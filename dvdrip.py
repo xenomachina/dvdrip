@@ -158,8 +158,8 @@ TITLE_COUNT_REGEXES = [
 ]
 
 def FindTitleCount(scan, verbose):
-  for line in scan:
     for regex in TITLE_COUNT_REGEXES:
+    for line in scan:
       m = regex.match(line)
       if m: break
     if m:
