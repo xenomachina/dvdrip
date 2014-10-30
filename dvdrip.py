@@ -270,8 +270,8 @@ class DVD:
     def __init__(self, mountpoint, verbose):
         if stat.S_ISBLK(os.stat(mountpoint).st_mode):
             mountpoint = FindMountPoint(mountpoint)
-        # TODO: don't abuse assert like this
-        assert os.path.isdir(mountpoint), '%r is not a directory' % mountpoint
+        if not os.path.isdir(mountpoint)
+            raise UserError('%r is not a directory' % mountpoint)
         self.mountpoint = mountpoint
         self.verbose = verbose
 
@@ -425,7 +425,8 @@ def TaskFilenames(tasks, output, dry_run=False):
         def ComputeFileName(task):
             return '%s.mp4' % output
     result = [ComputeFileName(task) for task in tasks]
-    assert len(set(result)) == len(result), "multiple tasks use same filename"
+    if len(set(result)) != len(result):
+        raise UserError("multiple tasks use same filename")
     return result
 
 def PerformTasks(dvd, tasks, title_count, filenames,
