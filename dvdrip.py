@@ -646,7 +646,7 @@ def main():
             titles = [FindMainFeature(titles, args.verbose)]
 
         if not titles:
-            print("No titles to rip!")
+            raise UserError("No titles to rip")
         else:
             if not args.output:
                 raise UserError("No output specified")
@@ -657,7 +657,7 @@ def main():
             # Don't stomp on existing files
             for filename in filenames:
                 if os.path.exists(filename):
-                    raise UserError('%r already exists!' % filename)
+                    raise UserError('%r already exists' % filename)
 
             PerformTasks(dvd, tasks, len(titles), filenames,
                     dry_run=args.dry_run, verbose=args.verbose)
