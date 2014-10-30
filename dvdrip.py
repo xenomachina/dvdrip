@@ -158,7 +158,7 @@ TITLE_COUNT_REGEXES = [
 ]
 
 def FindTitleCount(scan, verbose):
-    for regex in TITLE_COUNT_REGEXES:
+  for regex in TITLE_COUNT_REGEXES:
     for line in scan:
       m = regex.match(line)
       if m: break
@@ -356,10 +356,10 @@ class DVD:
             warn("Cannot scan title %d." % i)
         else:
             title_info_names = ParseTitleScan(scan).items()
-        if title_info_names:
-            title_name, title_info = only(title_info_names)
-            yield MakeTitle(title_name, i, title_info)
-        else:
+            if title_info_names:
+                title_name, title_info = only(title_info_names)
+                yield MakeTitle(title_name, i, title_info)
+            else:
                 warn("Cannot parse scan of title %d." % i)
 
   def Eject(self):
@@ -603,7 +603,7 @@ def parse_titles_arg(titles_arg):
             if not m :
                 raise UserError(
                     "--titles must be * or list of integer ranges, found %r" %
-                titles_arg)
+                    titles_arg)
             else:
                 start,end,only = m.groups()
                 if only is not None:
