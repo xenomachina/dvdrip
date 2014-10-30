@@ -350,12 +350,17 @@ class DVD:
             and ((not title_numbers)
                  or x in title_numbers)]
     for i in to_scan:
-        title_info_names = ParseTitleScan(ExtractTitleScan(self.ScanTitle(i))).items()
+        try:
+            scan = ExtractTitleScan(self.ScanTitle(i))
+        except subprocess.CalledProcessError as exc:
+            warn("Cannot scan title %d." % i)
+        else:
+            title_info_names = ParseTitleScan(scan).items()
         if title_info_names:
             title_name, title_info = only(title_info_names)
             yield MakeTitle(title_name, i, title_info)
         else:
-            warn("Cannot scan title %d." % i)
+                warn("Cannot parse scan of title %d." % i)
 
   def Eject(self):
     # TODO: this should really be a while loop that terminates once a
