@@ -591,16 +591,33 @@ def ParseArgs():
     raise UserError("output argument is required")
   return args
 
+# TODO: make it possible to have ranges with no end (meaning they end at last
+# title)
+NUM_RANGE_REGEX = re.compile(r'^(\d*)-(\d+)|(\d+)$')
 def parse_titles_arg(titles_arg):
     if titles_arg == '*':
         return None # all titles
     else:
-        try:
-            return list(map(int, titles_arg.split(',')))
-        except ValueError:
-            pass
-        raise UserError( "--titles must be * or list of ints, found %r" %
+        def str_to_ints(s):
+            m = NUM_RANGE_REGEX.match(s)
+            if not m :
+                raise UserError(
+                    "--titles must be * or list of integer ranges, found %r" %
                 titles_arg)
+            else:
+                start,end,only = m.groups()
+                if only is not None:
+                    return [int(only)]
+                else:
+                    start = int(start) if start else 1
+                    end = int(end)
+                    return range(start, end + 1)
+        result = set()
+        for s in titles_arg.split(','):
+            result.update(str_to_ints(s))
+        result = sorted(list(result))
+        return result
+
 def main():
   args = ParseArgs()
   dvd = DVD(args.input, args.verbose)
