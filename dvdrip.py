@@ -593,13 +593,12 @@ def ParseArgs():
             default="*",
             help="""Comma-separated list of title numbers to consider"
             (starting at 1) or * for all titles.""")
-    parser.add_argument('input',
+    parser.add_argument('-i', '--input',
             help="Volume to rip (must be a directory).")
-    parser.add_argument('output',
+    parser.add_argument('-o', '--output',
             help="""Output location. Extension is added if only one title
             being ripped, otherwise, a directory will be created to contain
-            ripped titles.""",
-            nargs='?')
+            ripped titles.""")
     args = parser.parse_args()
     if not args.scan and args.output is None:
         raise UserError("output argument is required")
@@ -649,6 +648,8 @@ def main():
         if not titles:
             print("No titles to rip!")
         else:
+            if not args.output:
+                raise UserError("No output specified")
             print('Writing to %r' % args.output)
             tasks = tuple(ConstructTasks(titles, args.chapter_split))
 
