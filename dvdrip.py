@@ -148,7 +148,6 @@ def check_err(*popenargs, **kwargs):
 def check_output(*args, **kwargs):
   return subprocess.check_output(*args, **kwargs).decode(CHAR_ENCODING)
 
-# TODO: why is this path hardcoded?
 HANDBRAKE = 'HandBrakeCLI'
 
 TITLE_COUNT_REGEXES = [
