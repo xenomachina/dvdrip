@@ -94,7 +94,7 @@ Using it, Step 1:
       chapter   1: 00:00:05 ◖◗
 
   Given that these are 2-segment episodes (it's pretty common for kids'
-  shows to have two segments per episode -- essentially i2 "mini-episodes") you
+  shows to have two segments per episode -- essentially 2 "mini-episodes") you
   can choose whether to do the default one video per title (episodes) or
   split by chapter (segments / mini-episodes).
 
@@ -102,9 +102,9 @@ Using it, Step 2:
 
   If you've decided to split by chapter, execute:
 
-    dvdrip.py -s /dev/cdrom Output_Name
+    dvdrip.py -c /dev/cdrom Output_Name
 
-  Otherwise, leave out the -s flag.
+  Otherwise, leave out the -c flag.
 
   If there is only one video being ripped, it will be named Output_Name.mp4. If
   there are multiple files, they will be placed in a new directory called
@@ -571,7 +571,9 @@ def DisplayScan(titles):
         print()
 
 def ParseArgs():
-    parser = argparse.ArgumentParser(description='Rip a DVD.')
+    description, epilog = __doc__.strip().split('\n', 1)
+    parser = argparse.ArgumentParser(description=description, epilog=epilog,
+            formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('-v', '--verbose',
             action='store_true',
             help="Increase verbosity.")
