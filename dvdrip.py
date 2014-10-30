@@ -303,7 +303,7 @@ class DVD:
     args += [
       '--markers',
       '--optimize',
-      '--no-dvdnav',
+      #'--no-dvdnav', # TODO: turn this on as a fallback
       '--input', self.mountpoint,
       '--output', output,
     ]
@@ -319,7 +319,7 @@ class DVD:
   def ScanTitle(self, i):
     for line in check_err([
       HANDBRAKE,
-      '--no-dvdnav',
+      #'--no-dvdnav', # TODO: turn this on as a fallback
       '--scan',
       '--title', str(i),
       '-i',
