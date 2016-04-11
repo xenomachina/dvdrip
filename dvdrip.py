@@ -146,7 +146,7 @@ def check_err(*popenargs, **kwargs):
         if cmd is None:
             cmd = popenargs[0]
         raise subprocess.CalledProcessError(retcode, cmd, output=stderr)
-    return stderr.decode(CHAR_ENCODING)
+    return stderr.decode(CHAR_ENCODING, 'replace')
 
 def check_output(*args, **kwargs):
     return subprocess.check_output(*args, **kwargs).decode(CHAR_ENCODING)
@@ -270,7 +270,7 @@ class DVD:
     def __init__(self, mountpoint, verbose):
         if stat.S_ISBLK(os.stat(mountpoint).st_mode):
             mountpoint = FindMountPoint(mountpoint)
-        if not os.path.isdir(mountpoint)
+        if not os.path.isdir(mountpoint):
             raise UserError('%r is not a directory' % mountpoint)
         self.mountpoint = mountpoint
         self.verbose = verbose
@@ -385,7 +385,7 @@ def FindMountPoint(dev):
     for line in check_output(['df', '-P']).split('\n'):
         m = regex.match(line)
         if m:
-            line = line.split()
+            line = line.split(None, 5)
             if len(line) > 1:
                 return line[-1]
     raise UserError('%r not mounted.' % dev)
