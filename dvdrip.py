@@ -267,9 +267,9 @@ TOTAL_EJECT_SECONDS = 5
 EJECT_ATTEMPTS_PER_SECOND = 10
 
 class DVD:
-    def __init__(self, mountpoint, verbose):
+    def __init__(self, mountpoint, verbose, mount_timeout=0):
         if stat.S_ISBLK(os.stat(mountpoint).st_mode):
-            mountpoint = FindMountPoint(mountpoint)
+            mountpoint = FindMountPoint(mountpoint, mount_timeout)
         if not os.path.isdir(mountpoint):
             raise UserError('%r is not a directory' % mountpoint)
         self.mountpoint = mountpoint
@@ -380,14 +380,20 @@ def ParseDuration(s):
         result += int(field)
     return result
 
-def FindMountPoint(dev):
+def FindMountPoint(dev, timeout):
     regex = re.compile(r'^' + re.escape(os.path.realpath(dev)) + r'\b')
-    for line in check_output(['df', '-P']).split('\n'):
-        m = regex.match(line)
-        if m:
-            line = line.split(None, 5)
-            if len(line) > 1:
-                return line[-1]
+
+    now = time.time()
+    end_time = now + timeout
+    while end_time >= now:
+        for line in check_output(['df', '-P']).split('\n'):
+            m = regex.match(line)
+            if m:
+                line = line.split(None, 5)
+                if len(line) > 1:
+                    return line[-1]
+        time.sleep(0.1)
+        now = time.time()
     raise UserError('%r not mounted.' % dev)
 
 def FindMainFeature(titles, verbose=False):
@@ -600,6 +606,10 @@ def ParseArgs():
             help="""Output location. Extension is added if only one title
             being ripped, otherwise, a directory will be created to contain
             ripped titles.""")
+    parser.add_argument('--mount-timeout',
+            default=15,
+            help="Amount of time to wait for a mountpoint to be mounted",
+            type=float)
     args = parser.parse_args()
     if not args.scan and args.output is None:
         raise UserError("output argument is required")
@@ -634,7 +644,7 @@ def parse_titles_arg(titles_arg):
 
 def main():
     args = ParseArgs()
-    dvd = DVD(args.input, args.verbose)
+    dvd = DVD(args.input, args.verbose, args.mount_timeout)
     print('Reading from %r' % dvd.mountpoint)
     title_numbers = parse_titles_arg(args.titles)
     titles = tuple(dvd.ScanTitles(title_numbers, args.verbose))
