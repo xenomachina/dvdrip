@@ -592,7 +592,7 @@ def ParseArgs():
             help="Rip only the main feature title.")
     parser.add_argument('-t', '--titles',
             default="*",
-            help="""Comma-separated list of title numbers to consider"
+            help="""Comma-separated list of title numbers to consider
             (starting at 1) or * for all titles.""")
     parser.add_argument('-i', '--input',
             help="Volume to rip (must be a directory).")
