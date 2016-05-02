@@ -1,6 +1,8 @@
+# dvdrip
+
 Rip DVDs quickly and easily from the commandline.
 
-Features:
+## Features:
   - With minimal configuration:
     - Encodes videos in mp4 files with h.264 video and aac audio.
       (compatible with a wide variety of media players without
@@ -14,7 +16,7 @@ Features:
   - Easy to read "scan" mode tells you what you need need to know about
     a disk to decide on how to rip it.
 
-Why I wrote this:
+## Why I wrote this:
   This script exists because I wanted a simple way to back up DVDs with
   reasonably good compression and quality settings, and in a format I could
   play on the various media players I own including PS3, Roku, smart TVs,
@@ -34,7 +36,7 @@ Why I wrote this:
   "/tmp/AwesomeVideo/" which will contain separate files for each title,
   depending on whether you're ripping a single title or multiple titles.
 
-Using it, Step 1:
+## Using it, Step 1:
 
   The first step is to scan your DVD and decide whether or not you want
   to split chapters. Here's an example of a disc with 6 episodes of a TV
@@ -93,7 +95,7 @@ Using it, Step 1:
   can choose whether to do the default one video per title (episodes) or
   split by chapter (segments / mini-episodes).
 
-Using it, Step 2:
+## Using it, Step 2:
 
   If you've decided to split by chapter, execute:
 
@@ -105,30 +107,32 @@ Using it, Step 2:
   there are multiple files, they will be placed in a new directory called
   Output_Name.
 
-Limitations
+## Limitations:
 
   This script has been tested on both Linux and Mac OS X with Python 3,
   HandBrakeCLI and VLC installed (and also MacPorts in the case of OS X).
 
-Usage: dvdrip.py [-h] [-v] [-c] [-n] [--scan] [--main-feature] [-t TITLES]
+## Usage:
+
+    dvdrip.py [-h] [-v] [-c] [-n] [--scan] [--main-feature] [-t TITLES]
                  [-i INPUT] [-o OUTPUT] [--mount-timeout MOUNT_TIMEOUT]
 
-Optional arguments:
-  -h, --help            show this help message and exit
-  -v, --verbose         Increase verbosity.
-  -c, --chapter_split   Split each chapter out into a separate file.
-  -n, --dry-run         Don't actually write anything.
-  --scan                Display scan of disc; do not rip.
-  --main-feature        Rip only the main feature title.
-  -t TITLES, --titles TITLES
-                        Comma-separated list of title numbers to consider
-                        (starting at 1) or * for all titles.
-  -i INPUT, --input INPUT
-                        Volume to rip (must be a directory).
-  -o OUTPUT, --output OUTPUT
-                        Output location. Extension is added if only one title
-                        being ripped, otherwise, a directory will be created
-                        to contain ripped titles.
-  --mount-timeout MOUNT_TIMEOUT
-                        Amount of time to wait for a mountpoint to be mounted
+## Optional arguments:
 
+    -h, --help            show this help message and exit
+    -v, --verbose         Increase verbosity.
+    -c, --chapter_split   Split each chapter out into a separate file.
+    -n, --dry-run         Don't actually write anything.
+    --scan                Display scan of disc; do not rip.
+    --main-feature        Rip only the main feature title.
+    -t TITLES, --titles TITLES
+                          Comma-separated list of title numbers to consider
+                          (starting at 1) or * for all titles.
+    -i INPUT, --input INPUT
+                          Volume to rip (must be a directory).
+    -o OUTPUT, --output OUTPUT
+                          Output location. Extension is added if only one title
+                          being ripped, otherwise, a directory will be created
+                          to contain ripped titles.
+    --mount-timeout MOUNT_TIMEOUT
+                          Amount of time to wait for a mountpoint to be mounted
