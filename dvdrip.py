@@ -337,6 +337,7 @@ class DVD:
         first = title_numbers[0] if title_numbers else 1
         raw_scan = tuple(self.ScanTitle(first))
         title_count = FindTitleCount(raw_scan, verbose)
+        print('Disc claims to have %d titles.' % title_count)
         title_name, title_info = only(
                 ParseTitleScan(ExtractTitleScan(raw_scan)).items())
         del raw_scan
