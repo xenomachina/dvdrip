@@ -2,6 +2,7 @@
 
 Rip DVDs quickly and easily from the commandline.
 
+
 ## Features:
   - With minimal configuration:
     - Encodes videos in mp4 files with h.264 video and aac audio.
@@ -115,9 +116,10 @@ Rip DVDs quickly and easily from the commandline.
 ## Usage:
 
     dvdrip.py [-h] [-v] [-c] [-n] [--scan] [--main-feature] [-t TITLES]
-                 [-i INPUT] [-o OUTPUT] [--mount-timeout MOUNT_TIMEOUT]
+              [-i INPUT] [-o OUTPUT] [--mount-timeout MOUNT_TIMEOUT]
 
-## Optional arguments:
+
+## Optional Arguments:
 
     -h, --help            show this help message and exit
     -v, --verbose         Increase verbosity.
@@ -136,3 +138,5 @@ Rip DVDs quickly and easily from the commandline.
                           to contain ripped titles.
     --mount-timeout MOUNT_TIMEOUT
                           Amount of time to wait for a mountpoint to be mounted
+
+
