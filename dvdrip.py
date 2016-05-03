@@ -110,7 +110,7 @@ Using it, Step 2:
   there are multiple files, they will be placed in a new directory called
   Output_Name.
 
-Limitations
+Limitations:
 
   This script has been tested on both Linux and Mac OS X with Python 3,
   HandBrakeCLI and VLC installed (and also MacPorts in the case of OS X).
