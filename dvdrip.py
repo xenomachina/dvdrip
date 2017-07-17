@@ -102,7 +102,7 @@ Using it, Step 2:
 
   If you've decided to split by chapter, execute:
 
-    dvdrip.py -c /dev/cdrom Output_Name
+    dvdrip.py -c /dev/cdrom -o Output_Name
 
   Otherwise, leave out the -c flag.
 
@@ -421,10 +421,10 @@ def TaskFilenames(tasks, output, dry_run=False):
         def ComputeFileName(task):
             if task.chapter is None:
                 return os.path.join(output,
-                        'Title %02d.mp4' % task.title.number)
+                        'Title%02d.mp4' % task.title.number)
             else:
                 return os.path.join(output,
-                        'Title %02d_%02d.mp4'
+                        'Title%02d_%02d.mp4'
                         % (task.title.number, task.chapter))
         if not dry_run:
             os.makedirs(output)

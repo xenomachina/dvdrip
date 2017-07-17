@@ -100,7 +100,7 @@ Rip DVDs quickly and easily from the commandline.
 
   If you've decided to split by chapter, execute:
 
-    dvdrip.py -c /dev/cdrom Output_Name
+    dvdrip.py -c /dev/cdrom -o Output_Name
 
   Otherwise, leave out the -c flag.
 
