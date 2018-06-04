@@ -523,18 +523,12 @@ def ParseAudioTracks(d):
         else:
             warn('Cannot parse audio track info %r' % info)
 
-SUB_TRACK_REGEX = re.compile(
-        r'^(\S(?:.*\S)?)\s+\(iso639-2:\s*([^)]+)\)\s*((?:\S(?:.*\S)?)?)$')
-
 SubtitleTrack = namedtuple('SubtitleTrack',
-        'number name iso639_2 extras')
+        'number info')
 
 def ParseSubtitleTracks(d):
     for number, info in sorted(((int(n), info) for (n, info) in d.items())):
-        m = SUB_TRACK_REGEX.match(info)
-        assert m, 'UNMATCHED %r' % info
-        name, iso639_2, extras = m.groups()
-        yield SubtitleTrack(number, name, iso639_2, extras)
+        yield SubtitleTrack(number, info)
 
 def RenderBar(start, length, total, width):
     end = start + length
@@ -564,8 +558,8 @@ def DisplayScan(titles):
             print('  audio % 3d: %s (%sch)  [%s]' %
                     (at.number, at.lang, at.channels, at.extras))
         for sub in ParseSubtitleTracks(info['subtitle tracks']):
-            print('  sub % 3d: %s  [%s]' %
-                    (sub.number, sub.name, sub.extras))
+            print('  sub % 3d: %s' %
+                    (sub.number, sub.info))
         position = 0
         if title_seconds > 0:
             for chapter in ParseChapters(info['chapters']):
