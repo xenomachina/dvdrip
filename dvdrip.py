@@ -117,6 +117,9 @@ Limitations:
 """
 
 # TODO: Detect if HandBrakeCLI is burning in vobsubs.
+# TODO: Support half-open ranges in title specs (DVD title numbers range from
+# 1-99)
+# TODO: Deal with failed scan of first title better.
 
 import argparse
 import os
