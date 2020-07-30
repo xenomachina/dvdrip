@@ -157,7 +157,7 @@ def check_output(*args, **kwargs):
 HANDBRAKE = 'HandBrakeCLI'
 
 TITLE_COUNT_REGEXES = [
-        re.compile(r'^Scanning title 1 of (\d+)\.\.\.$'),
+        re.compile(r'^Scanning title \d+ of (\d+)\.\.\.$'),
         re.compile(r'^\[\d\d:\d\d:\d\d] scan: DVD has (\d+) title\(s\)$'),
 ]
 
