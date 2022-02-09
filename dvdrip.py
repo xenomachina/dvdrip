@@ -131,7 +131,7 @@ import time
 
 from pprint import pprint
 from collections import namedtuple
-from fractions import gcd
+from math import gcd
 
 
 class UserError(Exception):
