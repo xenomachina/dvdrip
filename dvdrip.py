@@ -152,7 +152,8 @@ def check_err(*popenargs, **kwargs):
     return stderr.decode(CHAR_ENCODING, 'replace')
 
 def check_output(*args, **kwargs):
-    return subprocess.check_output(*args, **kwargs).decode(CHAR_ENCODING)
+    s = subprocess.check_output(*args, **kwargs).decode(CHAR_ENCODING)
+    return "\n".join(line for line in s.split("\r\n"))
 
 HANDBRAKE = 'HandBrakeCLI'
 
@@ -331,7 +332,7 @@ class DVD:
             self.mountpoint], stdout=subprocess.PIPE).split('\n'):
                 if self.verbose:
                         print('< %s' % line.rstrip())
-                yield line
+                yield line.rstrip('\r')
 
     def ScanTitles(self, title_numbers, verbose):
         """
@@ -370,6 +371,8 @@ class DVD:
                         warn("Cannot parse scan of title %d." % i)
 
     def Eject(self):
+        if os.name == 'nt':
+            return
         # TODO: this should really be a while loop that terminates once a
         # deadline is met.
         for i in range(TOTAL_EJECT_SECONDS * EJECT_ATTEMPTS_PER_SECOND):
