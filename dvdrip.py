@@ -121,6 +121,7 @@ Limitations:
 # 1-99)
 # TODO: Deal with failed scan of first title better.
 
+import ctypes
 import argparse
 import os
 import re
@@ -153,7 +154,7 @@ def check_err(*popenargs, **kwargs):
 
 def check_output(*args, **kwargs):
     s = subprocess.check_output(*args, **kwargs).decode(CHAR_ENCODING)
-    return "\n".join(line for line in s.split("\r\n"))
+    return s.replace(os.linesep, '\n')
 
 HANDBRAKE = 'HandBrakeCLI'
 
@@ -329,10 +330,10 @@ class DVD:
             '--scan',
             '--title', str(i),
             '-i',
-            self.mountpoint], stdout=subprocess.PIPE).split('\n'):
+            self.mountpoint], stdout=subprocess.PIPE).split(os.linesep):
                 if self.verbose:
                         print('< %s' % line.rstrip())
-                yield line.rstrip('\r')
+                yield line
 
     def ScanTitles(self, title_numbers, verbose):
         """
@@ -372,7 +373,13 @@ class DVD:
 
     def Eject(self):
         if os.name == 'nt':
+            if len(self.mountpoint) < 4 and self.mountpoint[1] == ':':
+                # mountpoint is only a drive letter like "F:" or "F:\" not a subdirectory
+                drive_letter = self.mountpoint[0]
+                ctypes.windll.WINMM.mciSendStringW("open %s: type CDAudio alias %s_drive" % (drive_letter, drive_letter), None, 0, None)
+                ctypes.windll.WINMM.mciSendStringW("set %s_drive door open" % drive_letter, None, 0, None)
             return
+
         # TODO: this should really be a while loop that terminates once a
         # deadline is met.
         for i in range(TOTAL_EJECT_SECONDS * EJECT_ATTEMPTS_PER_SECOND):
