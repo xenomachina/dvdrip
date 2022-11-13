@@ -599,7 +599,7 @@ def ParseArgs():
             help="""Comma-separated list of title numbers to consider
             (starting at 1) or * for all titles.""")
     parser.add_argument('-i', '--input',
-            help="Volume to rip (must be a directory).")
+            help="Volume to rip (must be a directory).", required=True)
     parser.add_argument('-o', '--output',
             help="""Output location. Extension is added if only one title
             being ripped, otherwise, a directory will be created to contain
