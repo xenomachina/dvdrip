@@ -45,7 +45,7 @@ Using it, Step 1:
   to split chapters. Here's an example of a disc with 6 episodes of a TV
   show, plus a "bump", all stored as a single title.
 
-    $ dvdrip --scan /dev/cdrom
+    $ dvdrip --scan -i /dev/cdrom
     Reading from '/media/EXAMPLE1'
     Title   1/  1: 02:25:33  720×576  4:3   25 fps
       audio   1: Chinese (5.1ch)  [48000Hz, 448000bps]
@@ -102,7 +102,7 @@ Using it, Step 2:
 
   If you've decided to split by chapter, execute:
 
-    dvdrip.py -c /dev/cdrom -o Output_Name
+    dvdrip.py -c -i /dev/cdrom -o Output_Name
 
   Otherwise, leave out the -c flag.
 
