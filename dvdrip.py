@@ -291,7 +291,7 @@ class DVD:
         args = [
             HANDBRAKE,
             '--title', str(task.title.number),
-            '--preset', "CLI Default",
+            '--preset', "Production Standard",
             '--encoder', 'x264',
             '--audio', ','.join(audio_tracks),
             '--aencoder', ','.join(audio_encoders),
