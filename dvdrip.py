@@ -45,7 +45,7 @@ Using it, Step 1:
   to split chapters. Here's an example of a disc with 6 episodes of a TV
   show, plus a "bump", all stored as a single title.
 
-    $ dvdrip --scan /dev/cdrom
+    $ dvdrip --scan -i /dev/cdrom
     Reading from '/media/EXAMPLE1'
     Title   1/  1: 02:25:33  720×576  4:3   25 fps
       audio   1: Chinese (5.1ch)  [48000Hz, 448000bps]
@@ -102,7 +102,7 @@ Using it, Step 2:
 
   If you've decided to split by chapter, execute:
 
-    dvdrip.py -c /dev/cdrom -o Output_Name
+    dvdrip.py -c -i /dev/cdrom -o Output_Name
 
   Otherwise, leave out the -c flag.
 
@@ -291,7 +291,7 @@ class DVD:
         args = [
             HANDBRAKE,
             '--title', str(task.title.number),
-            '--preset', "High Profile",
+            '--preset', "Production Standard",
             '--encoder', 'x264',
             '--audio', ','.join(audio_tracks),
             '--aencoder', ','.join(audio_encoders),
@@ -599,7 +599,7 @@ def ParseArgs():
             help="""Comma-separated list of title numbers to consider
             (starting at 1) or * for all titles.""")
     parser.add_argument('-i', '--input',
-            help="Volume to rip (must be a directory).")
+            help="Volume to rip (must be a directory).", required=True)
     parser.add_argument('-o', '--output',
             help="""Output location. Extension is added if only one title
             being ripped, otherwise, a directory will be created to contain
